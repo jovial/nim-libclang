@@ -12,7 +12,7 @@ else:
   const 
     libclang* = "libclang.so"
 type 
-  CXErrorCode* {.pure.} = enum 
+  CXErrorCode* {.pure, size: sizeof(cint).} = enum 
     Success = 0, Failure = 1, Crashed = 2, InvalidArguments = 3, 
     ASTReadError = 4
 type 
@@ -87,7 +87,7 @@ type
     Length*: culong
 
 type 
-  CXAvailabilityKind* {.pure.} = enum 
+  CXAvailabilityKind* {.pure, size: sizeof(cint).} = enum 
     Available, Deprecated, NotAvailable, NotAccessible
 type 
   CXVersion* {.pure, packed, bycopy.} = object 
@@ -188,7 +188,7 @@ proc getSkippedRanges*(tu: CXTranslationUnit; file: CXFile): ptr CXSourceRangeLi
 proc disposeSourceRangeList*(ranges: ptr CXSourceRangeList) {.cdecl, 
     importc: "clang_disposeSourceRangeList", dynlib: libclang.}
 type 
-  CXDiagnosticSeverity* {.pure.} = enum 
+  CXDiagnosticSeverity* {.pure, size: sizeof(cint).} = enum 
     Ignored = 0, Note = 1, Warning = 2, Error = 3, Fatal = 4
 type 
   CXDiagnostic* = distinct pointer
@@ -199,7 +199,7 @@ proc getNumDiagnosticsInSet*(Diags: CXDiagnosticSet): cuint {.cdecl,
 proc getDiagnosticInSet*(Diags: CXDiagnosticSet; Index: cuint): CXDiagnostic {.
     cdecl, importc: "clang_getDiagnosticInSet", dynlib: libclang.}
 type 
-  CXLoadDiag_Error* {.pure.} = enum 
+  CXLoadDiag_Error* {.pure, size: sizeof(cint).} = enum 
     None = 0, Unknown = 1, CannotLoad = 2, InvalidFile = 3
 proc loadDiagnostics*(file: cstring; error: ptr CXLoadDiag_Error; 
                       errorString: ptr CXString): CXDiagnosticSet {.cdecl, 
@@ -217,7 +217,7 @@ proc getDiagnosticSetFromTU*(Unit: CXTranslationUnit): CXDiagnosticSet {.cdecl,
 proc disposeDiagnostic*(Diagnostic: CXDiagnostic) {.cdecl, 
     importc: "clang_disposeDiagnostic", dynlib: libclang.}
 type 
-  CXDiagnosticDisplayOptions* {.pure.} = enum 
+  CXDiagnosticDisplayOptions* {.pure, size: sizeof(cint).} = enum 
     DisplaySourceLocation = 0x00000001, DisplayColumn = 0x00000002, 
     DisplaySourceRanges = 0x00000004, DisplayOption = 0x00000008, 
     DisplayCategoryId = 0x00000010, DisplayCategoryName = 0x00000020
@@ -261,7 +261,7 @@ proc createTranslationUnit2*(CIdx: CXIndex; ast_filename: cstring;
                              out_TU: ptr CXTranslationUnit): CXErrorCode {.
     cdecl, importc: "clang_createTranslationUnit2", dynlib: libclang.}
 type 
-  CXTranslationUnit_Flags* {.pure.} = enum 
+  CXTranslationUnit_Flags* {.pure, size: sizeof(cint).} = enum 
     None = 0x00000000, DetailedPreprocessingRecord = 0x00000001, 
     Incomplete = 0x00000002, PrecompiledPreamble = 0x00000004, 
     CacheCompletionResults = 0x00000008, ForSerialization = 0x00000010, 
@@ -283,12 +283,12 @@ proc parseTranslationUnit2*(CIdx: CXIndex; source_filename: cstring;
                             out_TU: ptr CXTranslationUnit): CXErrorCode {.cdecl, 
     importc: "clang_parseTranslationUnit2", dynlib: libclang.}
 type 
-  CXSaveTranslationUnit_Flags* {.pure.} = enum 
+  CXSaveTranslationUnit_Flags* {.pure, size: sizeof(cint).} = enum 
     None = 0x00000000
 proc defaultSaveOptions*(TU: CXTranslationUnit): cuint {.cdecl, 
     importc: "clang_defaultSaveOptions", dynlib: libclang.}
 type 
-  CXSaveError* {.pure.} = enum 
+  CXSaveError* {.pure, size: sizeof(cint).} = enum 
     None = 0, Unknown = 1, TranslationErrors = 2, InvalidTU = 3
 proc saveTranslationUnit*(TU: CXTranslationUnit; FileName: cstring; 
                           options: cuint): cint {.cdecl, 
@@ -296,7 +296,7 @@ proc saveTranslationUnit*(TU: CXTranslationUnit; FileName: cstring;
 proc disposeTranslationUnit*(a2: CXTranslationUnit) {.cdecl, 
     importc: "clang_disposeTranslationUnit", dynlib: libclang.}
 type 
-  CXReparse_Flags* {.pure.} = enum 
+  CXReparse_Flags* {.pure, size: sizeof(cint).} = enum 
     None = 0x00000000
 proc defaultReparseOptions*(TU: CXTranslationUnit): cuint {.cdecl, 
     importc: "clang_defaultReparseOptions", dynlib: libclang.}
@@ -304,7 +304,7 @@ proc reparseTranslationUnit*(TU: CXTranslationUnit; num_unsaved_files: cuint;
                              unsaved_files: ptr CXUnsavedFile; options: cuint): cint {.
     cdecl, importc: "clang_reparseTranslationUnit", dynlib: libclang.}
 type 
-  CXTUResourceUsageKind* {.pure.} = enum 
+  CXTUResourceUsageKind* {.pure, size: sizeof(cint).} = enum 
     AST = 1, Identifiers = 2, Selectors = 3, GlobalCompletionResults = 4, 
     SourceManagerContentCache = 5, AST_SideTables = 6, 
     SourceManager_Membuffer_Malloc = 7, SourceManager_Membuffer_MMap = 8, 
@@ -342,7 +342,7 @@ proc getCXTUResourceUsage*(TU: CXTranslationUnit): CXTUResourceUsage {.cdecl,
 proc disposeCXTUResourceUsage*(usage: CXTUResourceUsage) {.cdecl, 
     importc: "clang_disposeCXTUResourceUsage", dynlib: libclang.}
 type 
-  CXCursorKind* {.pure.} = enum 
+  CXCursorKind* {.pure, size: sizeof(cint).} = enum 
     UnexposedDecl = 1, StructDecl = 2, UnionDecl = 3, ClassDecl = 4, 
     EnumDecl = 5, FieldDecl = 6, EnumConstantDecl = 7, FunctionDecl = 8, 
     VarDecl = 9, ParmDecl = 10, ObjCInterfaceDecl = 11, ObjCCategoryDecl = 12, 
@@ -494,7 +494,7 @@ proc isPreprocessing*(a2: CXCursorKind): cuint {.cdecl,
 proc isUnexposed*(a2: CXCursorKind): cuint {.cdecl, 
     importc: "clang_isUnexposed", dynlib: libclang.}
 type 
-  CXLinkageKind* {.pure.} = enum 
+  CXLinkageKind* {.pure, size: sizeof(cint).} = enum 
     Invalid, NoLinkage, Internal, UniqueExternal, External
 proc getCursorLinkage*(cursor: CXCursor): CXLinkageKind {.cdecl, 
     importc: "clang_getCursorLinkage", dynlib: libclang.}
@@ -520,7 +520,7 @@ proc getCursorPlatformAvailability*(cursor: CXCursor;
 proc disposeCXPlatformAvailability*(availability: ptr CXPlatformAvailability) {.
     cdecl, importc: "clang_disposeCXPlatformAvailability", dynlib: libclang.}
 type 
-  CXLanguageKind* {.pure.} = enum 
+  CXLanguageKind* {.pure, size: sizeof(cint).} = enum 
     Invalid = 0, C, ObjC, CPlusPlus
 proc getCursorLanguage*(cursor: CXCursor): CXLanguageKind {.cdecl, 
     importc: "clang_getCursorLanguage", dynlib: libclang.}
@@ -554,7 +554,7 @@ proc getCursorLocation*(a2: CXCursor): CXSourceLocation {.cdecl,
 proc getCursorExtent*(a2: CXCursor): CXSourceRange {.cdecl, 
     importc: "clang_getCursorExtent", dynlib: libclang.}
 type 
-  CXTypeKind* {.pure.} = enum 
+  CXTypeKind* {.pure, size: sizeof(cint).} = enum 
     Invalid = 0, Unexposed = 1, Void = 2, Bool = 3, Char_U = 4, UChar = 5, 
     Char16 = 6, Char32 = 7, UShort = 8, UInt = 9, ULong = 10, ULongLong = 11, 
     UInt128 = 12, Char_S = 13, SChar = 14, WChar = 15, Short = 16, Int = 17, 
@@ -573,7 +573,7 @@ template FirstBuiltin*(enumTyp: typedesc[CXTypeKind]): expr =
   CXTypeKind.Void
 
 type 
-  CXCallingConv* {.pure.} = enum 
+  CXCallingConv* {.pure, size: sizeof(cint).} = enum 
     Default = 0, C = 1, X86StdCall = 2, X86FastCall = 3, X86ThisCall = 4, 
     X86Pascal = 5, AAPCS = 6, AAPCS_VFP = 7, PnaclCall = 8, IntelOclBicc = 9, 
     X86_64Win64 = 10, X86_64SysV = 11, X86VectorCall = 12, Invalid = 100, 
@@ -602,7 +602,7 @@ proc getNumArguments*(C: CXCursor): cint {.cdecl,
 proc getArgument*(C: CXCursor; i: cuint): CXCursor {.cdecl, 
     importc: "clang_Cursor_getArgument", dynlib: libclang.}
 type 
-  CXTemplateArgumentKind* {.pure.} = enum 
+  CXTemplateArgumentKind* {.pure, size: sizeof(cint).} = enum 
     Null, Type, Declaration, NullPtr, Integral, Template, TemplateExpansion, 
     Expression, Pack, Invalid
 proc getNumTemplateArguments*(C: CXCursor): cint {.cdecl, 
@@ -657,7 +657,7 @@ proc getArrayElementType*(T: CXType): CXType {.cdecl,
 proc getArraySize*(T: CXType): clonglong {.cdecl, importc: "clang_getArraySize", 
     dynlib: libclang.}
 type 
-  CXTypeLayoutError* {.pure.} = enum 
+  CXTypeLayoutError* {.pure, size: sizeof(cint).} = enum 
     InvalidFieldName = - 5, NotConstantSize = - 4, Dependent = - 3, 
     Incomplete = - 2, Invalid = - 1
 proc getAlignOf*(T: CXType): clonglong {.cdecl, 
@@ -670,7 +670,7 @@ proc getSizeOf*(T: CXType): clonglong {.cdecl, importc: "clang_Type_getSizeOf",
 proc getOffsetOf*(T: CXType; S: cstring): clonglong {.cdecl, 
     importc: "clang_Type_getOffsetOf", dynlib: libclang.}
 type 
-  CXRefQualifierKind* {.pure.} = enum 
+  CXRefQualifierKind* {.pure, size: sizeof(cint).} = enum 
     None = 0, LValue, RValue
 proc getNumTemplateArguments*(T: CXType): cint {.cdecl, 
     importc: "clang_Type_getNumTemplateArguments", dynlib: libclang.}
@@ -684,12 +684,12 @@ proc isBitField*(C: CXCursor): cuint {.cdecl,
 proc isVirtualBase*(a2: CXCursor): cuint {.cdecl, 
     importc: "clang_isVirtualBase", dynlib: libclang.}
 type 
-  CX_CXXAccessSpecifier* {.pure.} = enum 
+  CX_CXXAccessSpecifier* {.pure, size: sizeof(cint).} = enum 
     CXXInvalidAccessSpecifier, CXXPublic, CXXProtected, CXXPrivate
 proc getCXXAccessSpecifier*(a2: CXCursor): CX_CXXAccessSpecifier {.cdecl, 
     importc: "clang_getCXXAccessSpecifier", dynlib: libclang.}
 type 
-  CX_StorageClass* {.pure.} = enum 
+  CX_StorageClass* {.pure, size: sizeof(cint).} = enum 
     SC_Invalid, SC_None, SC_Extern, SC_Static, SC_PrivateExtern, 
     SC_OpenCLWorkGroupLocal, SC_Auto, SC_Register
 proc getStorageClass*(a2: CXCursor): CX_StorageClass {.cdecl, 
@@ -701,7 +701,7 @@ proc getOverloadedDecl*(cursor: CXCursor; index: cuint): CXCursor {.cdecl,
 proc getIBOutletCollectionType*(a2: CXCursor): CXType {.cdecl, 
     importc: "clang_getIBOutletCollectionType", dynlib: libclang.}
 type 
-  CXChildVisitResult* {.pure.} = enum 
+  CXChildVisitResult* {.pure, size: sizeof(cint).} = enum 
     Break, Continue, Recurse
 type 
   CXCursorVisitor* = proc (cursor: CXCursor; parent: CXCursor; 
@@ -809,7 +809,7 @@ proc getCursorReferenceNameRange*(C: CXCursor; NameFlags: cuint;
                                   PieceIndex: cuint): CXSourceRange {.cdecl, 
     importc: "clang_getCursorReferenceNameRange", dynlib: libclang.}
 type 
-  CXNameRefFlags* {.pure.} = enum 
+  CXNameRefFlags* {.pure, size: sizeof(cint).} = enum 
     WantQualifier = 0x00000001, WantTemplateArgs = 0x00000002, 
     WantSinglePiece = 0x00000004
 type 
@@ -856,7 +856,7 @@ type
     CompletionString*: CXCompletionString
 
 type 
-  CXCompletionChunkKind* {.pure.} = enum 
+  CXCompletionChunkKind* {.pure, size: sizeof(cint).} = enum 
     Optional, TypedText, Text, Placeholder, Informative, CurrentParameter, 
     LeftParen, RightParen, LeftBracket, RightBracket, LeftBrace, RightBrace, 
     LeftAngle, RightAngle, Comma, ResultType, Colon, SemiColon, Equal, 
@@ -894,11 +894,11 @@ type
     NumResults*: cuint
 
 type 
-  CXCodeComplete_Flags* {.pure.} = enum 
+  CXCodeComplete_Flags* {.pure, size: sizeof(cint).} = enum 
     IncludeMacros = 0x00000001, IncludeCodePatterns = 0x00000002, 
     IncludeBriefComments = 0x00000004
 type 
-  CXCompletionContext* {.pure.} = enum 
+  CXCompletionContext* {.pure, size: sizeof(cint).} = enum 
     Unexposed = 0, AnyType = 1 shl 0, AnyValue = 1 shl 1, 
     ObjCObjectValue = 1 shl 2, ObjCSelectorValue = 1 shl 3, 
     CXXClassTypeValue = 1 shl 4, DotMemberAccess = 1 shl 5, 
@@ -960,7 +960,7 @@ proc getFilenames*(a2: CXRemapping; index: cuint; original: ptr CXString;
 proc dispose*(a2: CXRemapping) {.cdecl, importc: "clang_remap_dispose", 
                                  dynlib: libclang.}
 type 
-  CXVisitorResult* {.pure.} = enum 
+  CXVisitorResult* {.pure, size: sizeof(cint).} = enum 
     Break, Continue
 type 
   CXCursorAndRangeVisitor* {.pure, packed, bycopy.} = object 
@@ -1731,3 +1731,5 @@ proc newCXIndexActionWrapper*(data: CXIndexAction): CXIndexActionWrapper =
   new(result, finalizeCXIndexAction)
   result.data = data
 
+when isMainModule:
+  doAssert sizeof(CXCursorKind) == 4
