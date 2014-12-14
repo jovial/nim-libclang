@@ -16,7 +16,7 @@ type
     Success = 0, Failure = 1, Crashed = 2, InvalidArguments = 3, 
     ASTReadError = 4
 type 
-  CXString* {.pure, packed, bycopy.} = object 
+  CXString* {.pure, bycopy.} = object 
     data*: pointer
     private_flags*: cuint
 
@@ -81,7 +81,7 @@ type
 type 
   CXClientData* = distinct pointer
 type 
-  CXUnsavedFile* {.pure, packed, bycopy.} = object 
+  CXUnsavedFile* {.pure, bycopy.} = object 
     Filename*: cstring
     Contents*: cstring
     Length*: culong
@@ -90,7 +90,7 @@ type
   CXAvailabilityKind* {.pure, size: sizeof(cint).} = enum 
     Available, Deprecated, NotAvailable, NotAccessible
 type 
-  CXVersion* {.pure, packed, bycopy.} = object 
+  CXVersion* {.pure, bycopy.} = object 
     Major*: cint
     Minor*: cint
     Subminor*: cint
@@ -115,7 +115,7 @@ proc getFileName*(SFile: CXFile): CXString {.cdecl,
 proc getFileTime*(SFile: CXFile): time_t {.cdecl, importc: "clang_getFileTime", 
     dynlib: libclang.}
 type 
-  CXFileUniqueID* {.pure, packed, bycopy.} = object 
+  CXFileUniqueID* {.pure, bycopy.} = object 
     data*: array[3, culonglong]
 
 proc getFileUniqueID*(file: CXFile; outID: ptr CXFileUniqueID): cint {.cdecl, 
@@ -127,12 +127,12 @@ proc getFile*(tu: CXTranslationUnit; file_name: cstring): CXFile {.cdecl,
 proc isEqual*(file1: CXFile; file2: CXFile): cint {.cdecl, 
     importc: "clang_File_isEqual", dynlib: libclang.}
 type 
-  CXSourceLocation* {.pure, packed, bycopy.} = object 
+  CXSourceLocation* {.pure, bycopy.} = object 
     ptr_data*: array[2, pointer]
     int_data*: cuint
 
 type 
-  CXSourceRange* {.pure, packed, bycopy.} = object 
+  CXSourceRange* {.pure, bycopy.} = object 
     ptr_data*: array[2, pointer]
     begin_int_data*: cuint
     end_int_data*: cuint
@@ -179,7 +179,7 @@ proc getRangeStart*(range: CXSourceRange): CXSourceLocation {.cdecl,
 proc getRangeEnd*(range: CXSourceRange): CXSourceLocation {.cdecl, 
     importc: "clang_getRangeEnd", dynlib: libclang.}
 type 
-  CXSourceRangeList* {.pure, packed, bycopy.} = object 
+  CXSourceRangeList* {.pure, bycopy.} = object 
     count*: cuint
     ranges*: ptr CXSourceRange
 
@@ -327,12 +327,12 @@ template Last*(enumTyp: typedesc[CXTUResourceUsageKind]): expr =
 proc getTUResourceUsageName*(kind: CXTUResourceUsageKind): cstring {.cdecl, 
     importc: "clang_getTUResourceUsageName", dynlib: libclang.}
 type 
-  CXTUResourceUsageEntry* {.pure, packed, bycopy.} = object 
+  CXTUResourceUsageEntry* {.pure, bycopy.} = object 
     kind*: CXTUResourceUsageKind
     amount*: culong
 
 type 
-  CXTUResourceUsage* {.pure, packed, bycopy.} = object 
+  CXTUResourceUsage* {.pure, bycopy.} = object 
     data*: pointer
     numEntries*: cuint
     entries*: ptr CXTUResourceUsageEntry
@@ -458,7 +458,7 @@ template UnexposedAttr*(enumTyp: typedesc[CXCursorKind]): expr =
   CXCursorKind.FirstAttr
 
 type 
-  CXCursor* {.pure, packed, bycopy.} = object 
+  CXCursor* {.pure, bycopy.} = object 
     kind*: CXCursorKind
     xdata*: cint
     data*: array[3, pointer]
@@ -501,7 +501,7 @@ proc getCursorLinkage*(cursor: CXCursor): CXLinkageKind {.cdecl,
 proc getCursorAvailability*(cursor: CXCursor): CXAvailabilityKind {.cdecl, 
     importc: "clang_getCursorAvailability", dynlib: libclang.}
 type 
-  CXPlatformAvailability* {.pure, packed, bycopy.} = object 
+  CXPlatformAvailability* {.pure, bycopy.} = object 
     Platform*: CXString
     Introduced*: CXVersion
     Deprecated*: CXVersion
@@ -579,7 +579,7 @@ type
     X86_64Win64 = 10, X86_64SysV = 11, X86VectorCall = 12, Invalid = 100, 
     Unexposed = 200
 type 
-  CXType* {.pure, packed, bycopy.} = object 
+  CXType* {.pure, bycopy.} = object 
     kind*: CXTypeKind
     data*: array[2, pointer]
 
@@ -816,7 +816,7 @@ type
   CXTokenKind* {.size: sizeof(cint), pure.} = enum 
     Punctuation, Keyword, Identifier, Literal, Comment
 type 
-  CXToken* {.pure, packed, bycopy.} = object 
+  CXToken* {.pure, bycopy.} = object 
     int_data*: array[4, cuint]
     ptr_data*: pointer
 
@@ -851,7 +851,7 @@ proc executeOnThread*(fn: proc (a2: pointer) {.cdecl.}; user_data: pointer;
 type 
   CXCompletionString* = pointer
 type 
-  CXCompletionResult* {.pure, packed, bycopy.} = object 
+  CXCompletionResult* {.pure, bycopy.} = object 
     CursorKind*: CXCursorKind
     CompletionString*: CXCompletionString
 
@@ -889,7 +889,7 @@ proc getCompletionBriefComment*(completion_string: CXCompletionString): CXString
 proc getCursorCompletionString*(cursor: CXCursor): CXCompletionString {.cdecl, 
     importc: "clang_getCursorCompletionString", dynlib: libclang.}
 type 
-  CXCodeCompleteResults* {.pure, packed, bycopy.} = object 
+  CXCodeCompleteResults* {.pure, bycopy.} = object 
     Results*: ptr CXCompletionResult
     NumResults*: cuint
 
@@ -963,7 +963,7 @@ type
   CXVisitorResult* {.pure, size: sizeof(cint).} = enum 
     Break, Continue
 type 
-  CXCursorAndRangeVisitor* {.pure, packed, bycopy.} = object 
+  CXCursorAndRangeVisitor* {.pure, bycopy.} = object 
     context*: pointer
     visit*: proc (context: pointer; a3: CXCursor; a4: CXSourceRange): CXVisitorResult {.
         cdecl.}
@@ -985,12 +985,12 @@ type
 type 
   CXIdxClientASTFile* = pointer
 type 
-  CXIdxLoc* {.pure, packed, bycopy.} = object 
+  CXIdxLoc* {.pure, bycopy.} = object 
     ptr_data*: array[2, pointer]
     int_data*: cuint
 
 type 
-  CXIdxIncludedFileInfo* {.pure, packed, bycopy.} = object 
+  CXIdxIncludedFileInfo* {.pure, bycopy.} = object 
     hashLoc*: CXIdxLoc
     filename*: cstring
     file*: CXFile
@@ -999,7 +999,7 @@ type
     isModuleImport*: cint
 
 type 
-  CXIdxImportedASTFileInfo* {.pure, packed, bycopy.} = object 
+  CXIdxImportedASTFileInfo* {.pure, bycopy.} = object 
     file*: CXFile
     module*: CXModule
     loc*: CXIdxLoc
@@ -1022,12 +1022,12 @@ type
     TemplateSpecialization = 3
   CXIdxAttrKind* {.size: sizeof(cint), pure.} = enum 
     Unexposed = 0, IBAction = 1, IBOutlet = 2, IBOutletCollection = 3
-  CXIdxAttrInfo* {.pure, packed, bycopy.} = object 
+  CXIdxAttrInfo* {.pure, bycopy.} = object 
     kind*: CXIdxAttrKind
     cursor*: CXCursor
     loc*: CXIdxLoc
 
-  CXIdxEntityInfo* {.pure, packed, bycopy.} = object 
+  CXIdxEntityInfo* {.pure, bycopy.} = object 
     kind*: CXIdxEntityKind
     templateKind*: CXIdxEntityCXXTemplateKind
     lang*: CXIdxEntityLanguage
@@ -1037,10 +1037,10 @@ type
     attributes*: ptr ptr CXIdxAttrInfo
     numAttributes*: cuint
 
-  CXIdxContainerInfo* {.pure, packed, bycopy.} = object 
+  CXIdxContainerInfo* {.pure, bycopy.} = object 
     cursor*: CXCursor
 
-  CXIdxIBOutletCollectionAttrInfo* {.pure, packed, bycopy.} = object 
+  CXIdxIBOutletCollectionAttrInfo* {.pure, bycopy.} = object 
     attrInfo*: ptr CXIdxAttrInfo
     objcClass*: ptr CXIdxEntityInfo
     classCursor*: CXCursor
@@ -1069,38 +1069,38 @@ type
     declInfo*: ptr CXIdxDeclInfo
     kind*: CXIdxObjCContainerKind
 
-  CXIdxBaseClassInfo* {.pure, packed, bycopy.} = object 
+  CXIdxBaseClassInfo* {.pure, bycopy.} = object 
     base*: ptr CXIdxEntityInfo
     cursor*: CXCursor
     loc*: CXIdxLoc
 
-  CXIdxObjCProtocolRefInfo* {.pure, packed, bycopy.} = object 
+  CXIdxObjCProtocolRefInfo* {.pure, bycopy.} = object 
     protocol*: ptr CXIdxEntityInfo
     cursor*: CXCursor
     loc*: CXIdxLoc
 
-  CXIdxObjCProtocolRefListInfo* {.pure, packed, bycopy.} = object 
+  CXIdxObjCProtocolRefListInfo* {.pure, bycopy.} = object 
     protocols*: ptr ptr CXIdxObjCProtocolRefInfo
     numProtocols*: cuint
 
-  CXIdxObjCInterfaceDeclInfo* {.pure, packed, bycopy.} = object 
+  CXIdxObjCInterfaceDeclInfo* {.pure, bycopy.} = object 
     containerInfo*: ptr CXIdxObjCContainerDeclInfo
     superInfo*: ptr CXIdxBaseClassInfo
     protocols*: ptr CXIdxObjCProtocolRefListInfo
 
-  CXIdxObjCCategoryDeclInfo* {.pure, packed, bycopy.} = object 
+  CXIdxObjCCategoryDeclInfo* {.pure, bycopy.} = object 
     containerInfo*: ptr CXIdxObjCContainerDeclInfo
     objcClass*: ptr CXIdxEntityInfo
     classCursor*: CXCursor
     classLoc*: CXIdxLoc
     protocols*: ptr CXIdxObjCProtocolRefListInfo
 
-  CXIdxObjCPropertyDeclInfo* {.pure, packed, bycopy.} = object 
+  CXIdxObjCPropertyDeclInfo* {.pure, bycopy.} = object 
     declInfo*: ptr CXIdxDeclInfo
     getter*: ptr CXIdxEntityInfo
     setter*: ptr CXIdxEntityInfo
 
-  CXIdxCXXClassDeclInfo* {.pure, packed, bycopy.} = object 
+  CXIdxCXXClassDeclInfo* {.pure, bycopy.} = object 
     declInfo*: ptr CXIdxDeclInfo
     bases*: ptr ptr CXIdxBaseClassInfo
     numBases*: cuint
@@ -1109,7 +1109,7 @@ type
   CXIdxEntityRefKind* {.size: sizeof(cint), pure.} = enum 
     Direct = 1, Implicit = 2
 type 
-  CXIdxEntityRefInfo* {.pure, packed, bycopy.} = object 
+  CXIdxEntityRefInfo* {.pure, bycopy.} = object 
     kind*: CXIdxEntityRefKind
     cursor*: CXCursor
     loc*: CXIdxLoc
@@ -1118,7 +1118,7 @@ type
     container*: ptr CXIdxContainerInfo
 
 type 
-  IndexerCallbacks* {.pure, packed, bycopy.} = object 
+  IndexerCallbacks* {.pure, bycopy.} = object 
     abortQuery*: proc (client_data: CXClientData; reserved: pointer): cint {.
         cdecl.}
     diagnostic*: proc (client_data: CXClientData; a3: CXDiagnosticSet; 
@@ -1733,3 +1733,8 @@ proc newCXIndexActionWrapper*(data: CXIndexAction): CXIndexActionWrapper =
 
 when isMainModule:
   doAssert sizeof(CXCursorKind) == 4
+  doAssert sizeof(CXTypeKind) == 4
+  doAssert sizeof(pointer) == 8
+  doAssert sizeof(CXType) == 24
+  doAssert sizeof(CXCursor) == 32
+  
