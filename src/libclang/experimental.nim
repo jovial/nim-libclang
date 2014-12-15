@@ -8,129 +8,129 @@ import unsigned
 # TODOs
 # - replace cstring in wrapped procedures
 # - helper procedures for array access
-# - fix order order dependent stuff, eg clang_disposeTokens(tu,...)
+# - check order order dependent stuff, eg clang_disposeTokens(tu,...)
 #   must be called before clang_disposeTranslationUnit(tu)
-# - getTranslationUnit returns a reference we may already have (there may be others) - double free
+# - getTranslationUnit returns a reference we may already have (there may be others) - double free (commented out for now)
 # - some procedures should return a result instead of using an OUT param
-# - reduce length of object names. One possibility is CXStringWrapper -> CXWString
+# - make wrapper names consistent. Should wrappers holding arrays have Array in the name?
 
 
 type 
-  CXStringWrapper* = ref object 
+  CXWString* = ref object 
     data: CXString
 
-proc finalizeCXString(a: CXStringWrapper) = 
+proc finalizeCXString(a: CXWString) = 
   if isNil(a.data.data.pointer): 
     return 
   disposeString(a.data)
 
-proc unWrap*(a: CXStringWrapper): CXString = 
+proc unWrap*(a: CXWString): CXString = 
   a.data
 
-proc `$`(a: CXStringWrapper): string =
+proc `$`*(a: CXWString): string =
   let cxstring = a.unwrap()
   $getCString(cxstring)
 
-proc newCXStringWrapper*(data: CXString): CXStringWrapper = 
+proc newCXWString*(data: CXString): CXWString = 
   new(result, finalizeCXString)
   result.data = data
 
-proc `data`*(a: CXStringWrapper): type a.data.data {.inline.} = 
+proc `data`*(a: CXWString): type a.data.data {.inline.} = 
   a.data.data
 
-proc `data =`*(a: CXStringWrapper; newVal: type a.data.data) {.inline.} = 
+proc `data =`*(a: CXWString; newVal: type a.data.data) {.inline.} = 
   a.data.data = newVal
 
-proc `private_flags`*(a: CXStringWrapper): type a.data.private_flags {.inline.} = 
+proc `private_flags`*(a: CXWString): type a.data.private_flags {.inline.} = 
   a.data.private_flags
 
-proc `private_flags =`*(a: CXStringWrapper; newVal: type a.data.private_flags) {.
+proc `private_flags =`*(a: CXWString; newVal: type a.data.private_flags) {.
     inline.} = 
   a.data.private_flags = newVal
 
 type 
-  CXVirtualFileOverlayWrapper* = ref object 
+  CXWVirtualFileOverlay* = ref object 
     data: CXVirtualFileOverlay
 
-proc finalizeCXVirtualFileOverlay(a: CXVirtualFileOverlayWrapper) = 
+proc finalizeCXVirtualFileOverlay(a: CXWVirtualFileOverlay) = 
   if isNil(a.data.pointer): 
     return 
   dispose(a.data)
 
-proc unWrap*(a: CXVirtualFileOverlayWrapper): CXVirtualFileOverlay = 
+proc unWrap*(a: CXWVirtualFileOverlay): CXVirtualFileOverlay = 
   a.data
 
-proc newCXVirtualFileOverlayWrapper*(data: CXVirtualFileOverlay): CXVirtualFileOverlayWrapper = 
+proc newCXWVirtualFileOverlay*(data: CXVirtualFileOverlay): CXWVirtualFileOverlay = 
   new(result, finalizeCXVirtualFileOverlay)
   result.data = data
 
 type 
-  CXModuleMapDescriptorWrapper* = ref object 
+  CXWModuleMapDescriptor* = ref object 
     data: CXModuleMapDescriptor
 
-proc finalizeCXModuleMapDescriptor(a: CXModuleMapDescriptorWrapper) = 
+proc finalizeCXModuleMapDescriptor(a: CXWModuleMapDescriptor) = 
   if isNil(a.data.pointer): 
     return 
   dispose(a.data)
 
-proc unWrap*(a: CXModuleMapDescriptorWrapper): CXModuleMapDescriptor = 
+proc unWrap*(a: CXWModuleMapDescriptor): CXModuleMapDescriptor = 
   a.data
 
-proc newCXModuleMapDescriptorWrapper*(data: CXModuleMapDescriptor): CXModuleMapDescriptorWrapper = 
+proc newCXWModuleMapDescriptor*(data: CXModuleMapDescriptor): CXWModuleMapDescriptor = 
   new(result, finalizeCXModuleMapDescriptor)
   result.data = data
 
 #note: all translation units must be freed before we can free this
 type 
-  CXIndexWrapper* = ref object 
+  CXWIndex* = ref object 
     data: CXIndex
 
-proc finalizeCXIndex(a: CXIndexWrapper) = 
+proc finalizeCXIndex(a: CXWIndex) = 
   if isNil(a.data.pointer): 
     return 
   disposeIndex(a.data)
 
-proc unWrap*(a: CXIndexWrapper): CXIndex = 
+proc unWrap*(a: CXWIndex): CXIndex = 
   a.data
 
-proc newCXIndexWrapper*(data: CXIndex): CXIndexWrapper = 
+proc newCXWIndex*(data: CXIndex): CXWIndex = 
   new(result, finalizeCXIndex)
   result.data = data
 
 
 # must be kept alive until all translation units have been freed
 type 
-  CXIndexActionWrapper* = ref object 
+  CXWIndexAction* = ref object 
     data: CXIndexAction
 
-proc finalizeCXIndexAction(a: CXIndexActionWrapper) = 
+proc finalizeCXIndexAction(a: CXWIndexAction) = 
   if isNil(a.data.pointer): 
     return 
   dispose(a.data)
 
-proc unWrap*(a: CXIndexActionWrapper): CXIndexAction = 
+proc unWrap*(a: CXWIndexAction): CXIndexAction = 
   a.data
 
-proc newCXIndexActionWrapper*(data: CXIndexAction): CXIndexActionWrapper = 
+proc newCXWIndexAction*(data: CXIndexAction): CXWIndexAction = 
   new(result, finalizeCXIndexAction)
   result.data = data
 
 
 type 
-  CXTranslationUnitWrapper* = ref object 
+  CXWTranslationUnit* = ref object 
     data: CXTranslationUnit
-    index: CXIndexWrapper # to keep it alive
-    indexAction: CXIndexActionWrapper
+    index: CXWIndex # to keep it alive
+    indexAction: CXWIndexAction
 
-proc finalizeCXTranslationUnit(a: CXTranslationUnitWrapper) = 
+proc finalizeCXTranslationUnit(a: CXWTranslationUnit) = 
   if isNil(a.data.pointer): 
     return 
   disposeTranslationUnit(a.data)
 
-proc unWrap*(a: CXTranslationUnitWrapper): CXTranslationUnit = 
+proc unWrap*(a: CXWTranslationUnit): CXTranslationUnit = 
   a.data
 
-proc newCXTranslationUnitWrapper*(index: CXIndexWrapper, indexAction: CXIndexActionWrapper,data: CXTranslationUnit): CXTranslationUnitWrapper = 
+proc newCXWTranslationUnit*(index: CXWIndex, indexAction: CXWIndexAction,data: CXTranslationUnit): CXWTranslationUnit = 
   ## You must supply a CXIndex, so that this translation doesn;t outlive it's index.
   new(result, finalizeCXTranslationUnit)
   result.data = data
@@ -138,100 +138,100 @@ proc newCXTranslationUnitWrapper*(index: CXIndexWrapper, indexAction: CXIndexAct
   result.indexAction = indexAction
 
 type 
-  CXSourceRangeListWrapper* = ref object 
+  CXWSourceRangeList* = ref object 
     data: ptr CXSourceRangeList
 
-proc finalizeCXSourceRangeList(a: CXSourceRangeListWrapper) = 
+proc finalizeCXSourceRangeList(a: CXWSourceRangeList) = 
   if isNil(a.data.pointer): 
     return 
   disposeSourceRangeList(a.data)
 
-proc unWrap*(a: CXSourceRangeListWrapper): ptr CXSourceRangeList = 
+proc unWrap*(a: CXWSourceRangeList): ptr CXSourceRangeList = 
   a.data
 
-proc newCXSourceRangeListWrapper*(data: ptr CXSourceRangeList): CXSourceRangeListWrapper = 
+proc newCXWSourceRangeList*(data: ptr CXSourceRangeList): CXWSourceRangeList = 
   new(result, finalizeCXSourceRangeList)
   result.data = data
 
-proc `count`*(a: CXSourceRangeListWrapper): type a.data[].count {.inline.} = 
+proc `count`*(a: CXWSourceRangeList): type a.data[].count {.inline.} = 
   a.data[].count
 
-proc `count =`*(a: CXSourceRangeListWrapper; newVal: type a.data[].count) {.
+proc `count =`*(a: CXWSourceRangeList; newVal: type a.data[].count) {.
     inline.} = 
   a.data[].count = newVal
 
-proc `ranges`*(a: CXSourceRangeListWrapper): type a.data[].ranges {.inline.} = 
+proc `ranges`*(a: CXWSourceRangeList): type a.data[].ranges {.inline.} = 
   a.data[].ranges
 
-proc `ranges =`*(a: CXSourceRangeListWrapper; newVal: type a.data[].ranges) {.
+proc `ranges =`*(a: CXWSourceRangeList; newVal: type a.data[].ranges) {.
     inline.} = 
   a.data[].ranges = newVal
 
 type 
-  CXDiagnosticWrapper* = ref object 
+  CXWDiagnostic* = ref object 
     data: CXDiagnostic
 
-proc finalizeCXDiagnostic(a: CXDiagnosticWrapper) = 
+proc finalizeCXDiagnostic(a: CXWDiagnostic) = 
   if isNil(a.data.pointer): 
     return 
   disposeDiagnostic(a.data)
 
-proc unWrap*(a: CXDiagnosticWrapper): CXDiagnostic = 
+proc unWrap*(a: CXWDiagnostic): CXDiagnostic = 
   a.data
 
-proc newCXDiagnosticWrapper*(data: CXDiagnostic): CXDiagnosticWrapper = 
+proc newCXWDiagnostic*(data: CXDiagnostic): CXWDiagnostic = 
   new(result, finalizeCXDiagnostic)
   result.data = data
 
 type 
-  CXDiagnosticSetWrapper* = ref object 
+  CXWDiagnosticSet* = ref object 
     data: CXDiagnosticSet
 
-proc finalizeCXDiagnosticSet(a: CXDiagnosticSetWrapper) = 
+proc finalizeCXDiagnosticSet(a: CXWDiagnosticSet) = 
   if isNil(a.data.pointer): 
     return 
   disposeDiagnosticSet(a.data)
 
-proc unWrap*(a: CXDiagnosticSetWrapper): CXDiagnosticSet = 
+proc unWrap*(a: CXWDiagnosticSet): CXDiagnosticSet = 
   a.data
 
-proc newCXDiagnosticSetWrapper*(data: CXDiagnosticSet): CXDiagnosticSetWrapper = 
+proc newCXWDiagnosticSet*(data: CXDiagnosticSet): CXWDiagnosticSet = 
   new(result, finalizeCXDiagnosticSet)
   result.data = data
 
 type 
-  CXTUResourceUsageWrapper* = ref object 
+  CXWTUResourceUsage* = ref object 
     data: CXTUResourceUsage
 
-proc finalizeCXTUResourceUsage(a: CXTUResourceUsageWrapper) = 
+proc finalizeCXTUResourceUsage(a: CXWTUResourceUsage) = 
   if isNil(a.data.data.pointer): 
     return 
   disposeCXTUResourceUsage(a.data)
 
-proc unWrap*(a: CXTUResourceUsageWrapper): CXTUResourceUsage = 
+proc unWrap*(a: CXWTUResourceUsage): CXTUResourceUsage = 
   a.data
 
-proc newCXTUResourceUsageWrapper*(data: CXTUResourceUsage): CXTUResourceUsageWrapper = 
+proc newCXWTUResourceUsage*(data: CXTUResourceUsage): CXWTUResourceUsage = 
   new(result, finalizeCXTUResourceUsage)
   result.data = data
 
-proc `data`*(a: CXTUResourceUsageWrapper): type a.data.data {.inline.} = 
+proc `data`*(a: CXWTUResourceUsage): type a.data.data {.inline.} = 
   a.data.data
 
-proc `data =`*(a: CXTUResourceUsageWrapper; newVal: type a.data.data) {.inline.} = 
+proc `data =`*(a: CXWTUResourceUsage; newVal: type a.data.data) {.inline.} = 
   a.data.data = newVal
 
-proc `numEntries`*(a: CXTUResourceUsageWrapper): type a.data.numEntries {.inline.} = 
+proc `numEntries`*(a: CXWTUResourceUsage): type a.data.numEntries {.inline.} = 
   a.data.numEntries
 
-proc `numEntries =`*(a: CXTUResourceUsageWrapper; newVal: type a.data.numEntries) {.
+proc `numEntries =`*(a: CXWTUResourceUsage; newVal: type a.data.numEntries) {.
     inline.} = 
   a.data.numEntries = newVal
 
-proc `entries`*(a: CXTUResourceUsageWrapper): type a.data.entries {.inline.} = 
+proc `entries`*(a: CXWTUResourceUsage): type a.data.entries {.inline.} = 
   a.data.entries
 
-proc `entries =`*(a: CXTUResourceUsageWrapper; newVal: type a.data.entries) {.
+proc `entries =`*(a: CXWTUResourceUsage; newVal: type a.data.entries) {.
     inline.} = 
   a.data.entries = newVal
 
@@ -239,401 +239,406 @@ proc `entries =`*(a: CXTUResourceUsageWrapper; newVal: type a.data.entries) {.
 
 #TODO: better name - foreign array / Cursors / CursorArray?   
 type 
-  CXCursorWrapper* = ref object 
+  CXWCursor* = ref object 
     data: ptr CXCursor
     size: cuint
 
-proc unWrap*(a: CXCursorWrapper): ptr CXCursor = 
+proc unWrap*(a: CXWCursor): ptr CXCursor = 
   a.data
 
-proc `kind`*(a: CXCursorWrapper): type CXCursorKind {.inline.} = 
+proc `kind`*(a: CXWCursor): type CXCursorKind {.inline.} = 
   a.unWrap()[].kind
 
-proc `kind =`*(a: CXCursorWrapper; newVal: CXCursorKind) {.inline.} = 
+proc `kind =`*(a: CXWCursor; newVal: CXCursorKind) {.inline.} = 
   a.unWrap()[].kind = newVal
 
-proc `xdata`*(a: CXCursorWrapper): cint {.inline.} = 
+proc `xdata`*(a: CXWCursor): cint {.inline.} = 
   a.unWrap()[].xdata
 
-proc `xdata =`*(a: CXCursorWrapper; newVal: cint) {.inline.} = 
+proc `xdata =`*(a: CXWCursor; newVal: cint) {.inline.} = 
   a.unWrap()[].xdata = newVal
 
-proc `data`*(a: CXCursorWrapper): array[3, pointer] {.inline.} = 
+proc `data`*(a: CXWCursor): array[3, pointer] {.inline.} = 
   a.unWrap()[].data
 
-proc `data =`*(a: CXCursorWrapper; newVal: array[3, pointer]) {.inline.} = 
+proc `data =`*(a: CXWCursor; newVal: array[3, pointer]) {.inline.} = 
   a.unWrap()[].data = newVal
 
-proc finalizeCXCursor(a: CXCursorWrapper) = 
+proc finalizeCXCursor(a: CXWCursor) = 
   if isNil(a.data.pointer): 
     return 
   disposeOverriddenCursors(a.data)
 
 
-proc newCXCursorWrapper*(data: ptr CXCursor, len: cuint): CXCursorWrapper = 
+proc newCXWCursor*(data: ptr CXCursor, len: cuint): CXWCursor = 
   new(result, finalizeCXCursor)
   result.data = data
   result.size = len
 
-proc len*(a: CXCursorWrapper): cuint =
+proc len*(a: CXWCursor): cuint =
   return a.size
 
 
-proc toSeq*(a: CXCursorWrapper): seq[CXCursor] =
+proc toSeq*(a: CXWCursor): seq[CXCursor] =
   var temp = initCArray(a.data,a.len)
   result = newSeq[CXCursor](a.len.int)
-  for i in 0.. a.len.int:
+  for i in 0.. <a.len.int:
     result[i] = temp[i]
 
-converter CXCursorstoSeq(a: CXCursorWrapper): seq[CXCursor] =
+converter CXCursorstoSeq(a: CXWCursor): seq[CXCursor] =
   toSeq(a)
 
 
 type 
-  CXPlatformAvailabilityWrapper* = ref object 
+  CXWPlatformAvailability* = ref object 
     data: ptr CXPlatformAvailability
     size: cint
     model: seq[CXPlatformAvailability]
 
-proc finalizeCXPlatformAvailability(a: CXPlatformAvailabilityWrapper) = 
+proc finalizeCXPlatformAvailability(a: CXWPlatformAvailability) = 
   if isNil(a.data.pointer): 
     return 
   disposeCXPlatformAvailability(a.data)
 
-proc unWrap*(a: CXPlatformAvailabilityWrapper): ptr CXPlatformAvailability = 
+proc unWrap*(a: CXWPlatformAvailability): ptr CXPlatformAvailability = 
   a.data
 
-proc newCXPlatformAvailabilityWrapper*(data: ptr CXPlatformAvailability, len: cint): CXPlatformAvailabilityWrapper = 
+proc newCXWPlatformAvailability*(data: ptr CXPlatformAvailability, len: cint): CXWPlatformAvailability = 
   new(result, finalizeCXPlatformAvailability)
   result.data = data
   result.size = len
 
-proc newCXPlatformAvailabilityWrapper*(len: cint): CXPlatformAvailabilityWrapper = 
+proc newCXWPlatformAvailability*(len: cint): CXWPlatformAvailability = 
   new(result, finalizeCXPlatformAvailability)
   result.model = newSeq[CXPlatformAvailability](len)
   result.data = result.model[0].addr
   result.size = len
 
-proc len*(a: CXPlatformAvailabilityWrapper): cint =
+proc len*(a: CXWPlatformAvailability): cint =
   return a.size
 
 
-proc `Platform`*(a: CXPlatformAvailabilityWrapper): type a.data[].Platform {.
+proc `Platform`*(a: CXWPlatformAvailability): type a.data[].Platform {.
     inline.} = 
   a.data[].Platform
 
-proc `Platform =`*(a: CXPlatformAvailabilityWrapper; 
+proc `Platform =`*(a: CXWPlatformAvailability; 
                    newVal: type a.data[].Platform) {.inline.} = 
   a.data[].Platform = newVal
 
-proc `Introduced`*(a: CXPlatformAvailabilityWrapper): type a.data[].Introduced {.
+proc `Introduced`*(a: CXWPlatformAvailability): type a.data[].Introduced {.
     inline.} = 
   a.data[].Introduced
 
-proc `Introduced =`*(a: CXPlatformAvailabilityWrapper; 
+proc `Introduced =`*(a: CXWPlatformAvailability; 
                      newVal: type a.data[].Introduced) {.inline.} = 
   a.data[].Introduced = newVal
 
-proc `Deprecated`*(a: CXPlatformAvailabilityWrapper): type a.data[].Deprecated {.
+proc `Deprecated`*(a: CXWPlatformAvailability): type a.data[].Deprecated {.
     inline.} = 
   a.data[].Deprecated
 
-proc `Deprecated =`*(a: CXPlatformAvailabilityWrapper; 
+proc `Deprecated =`*(a: CXWPlatformAvailability; 
                      newVal: type a.data[].Deprecated) {.inline.} = 
   a.data[].Deprecated = newVal
 
-proc `Obsoleted`*(a: CXPlatformAvailabilityWrapper): type a.data[].Obsoleted {.
+proc `Obsoleted`*(a: CXWPlatformAvailability): type a.data[].Obsoleted {.
     inline.} = 
   a.data[].Obsoleted
 
-proc `Obsoleted =`*(a: CXPlatformAvailabilityWrapper; 
+proc `Obsoleted =`*(a: CXWPlatformAvailability; 
                     newVal: type a.data[].Obsoleted) {.inline.} = 
   a.data[].Obsoleted = newVal
 
-proc `Unavailable`*(a: CXPlatformAvailabilityWrapper): type a.data[].Unavailable {.
+proc `Unavailable`*(a: CXWPlatformAvailability): type a.data[].Unavailable {.
     inline.} = 
   a.data[].Unavailable
 
-proc `Unavailable =`*(a: CXPlatformAvailabilityWrapper; 
+proc `Unavailable =`*(a: CXWPlatformAvailability; 
                       newVal: type a.data[].Unavailable) {.inline.} = 
   a.data[].Unavailable = newVal
 
-proc `Message`*(a: CXPlatformAvailabilityWrapper): type a.data[].Message {.
+proc `Message`*(a: CXWPlatformAvailability): type a.data[].Message {.
     inline.} = 
   a.data[].Message
 
-proc `Message =`*(a: CXPlatformAvailabilityWrapper; 
+proc `Message =`*(a: CXWPlatformAvailability; 
                   newVal: type a.data[].Message) {.inline.} = 
   a.data[].Message = newVal
 
 type 
-  CXCursorSetWrapper* = ref object 
+  CXWCursorSet* = ref object 
     data: CXCursorSet
 
-proc finalizeCXCursorSet(a: CXCursorSetWrapper) = 
+proc finalizeCXCursorSet(a: CXWCursorSet) = 
   if isNil(a.data.pointer): 
     return 
   disposeCXCursorSet(a.data)
 
-proc unWrap*(a: CXCursorSetWrapper): CXCursorSet = 
+proc unWrap*(a: CXWCursorSet): CXCursorSet = 
   a.data
 
-proc newCXCursorSetWrapper*(data: CXCursorSet): CXCursorSetWrapper = 
+proc newCXWCursorSet*(data: CXCursorSet): CXWCursorSet = 
   new(result, finalizeCXCursorSet)
   result.data = data
 
+#TODO: better name: CXWTokenArrayArray
 type 
-  CXTokenWrapper* = ref object 
+  CXWTokenArray* = ref object 
     data: ptr CXToken
     numTokens: cuint
-    tu: CXTranslationUnitWrapper
+    tu: CXWTranslationUnit
 
-proc finalizeCXToken(a: CXTokenWrapper) = 
+proc finalizeCXToken(a: CXWTokenArray) = 
   if isNil(a.data.pointer): 
     return 
   disposeTokens(a.tu.unwrap(),a.data,a.numTokens)
 
-proc unWrap*(a: CXTokenWrapper): ptr CXToken = 
+proc unWrap*(a: CXWTokenArray): ptr CXToken = 
   a.data
 
-proc newCXTokenWrapper*(tu: CXTranslationUnitWrapper, data: ptr CXToken, numTokens: cuint): CXTokenWrapper = 
+proc newCXWTokenArray*(tu: CXWTranslationUnit, data: ptr CXToken, numTokens: cuint): CXWTokenArray = 
   new(result, finalizeCXToken)
   result.data = data
   result.tu = tu
   result.numTokens = numTokens
 
-proc `int_data`*(a: CXTokenWrapper): type a.data[].int_data {.inline.} = 
-  a.data[].int_data
+proc len*(a: CXWTokenArray): cuint =
+  return a.numTokens
 
-proc `int_data =`*(a: CXTokenWrapper; newVal: type a.data[].int_data) {.inline.} = 
-  a.data[].int_data = newVal
+proc toSeq*(a: CXWTokenArray): seq[CXToken] =
+  var temp = initCArray(a.data,a.len)
+  result = newSeq[CXToken](a.len.int)
+  for i in 0.. <a.len.int:
+    result[i] = temp[i]
 
-proc `ptr_data`*(a: CXTokenWrapper): type a.data[].ptr_data {.inline.} = 
-  a.data[].ptr_data
+converter CXWTokenArraytoSeq(a: CXWTokenArray): seq[CXToken] =
+  toSeq(a)
 
-proc `ptr_data =`*(a: CXTokenWrapper; newVal: type a.data[].ptr_data) {.inline.} = 
-  a.data[].ptr_data = newVal
 
 type 
-  CXCodeCompleteResultsWrapper* = ref object 
+  CXWCodeCompleteResults* = ref object 
     data: ptr CXCodeCompleteResults
 
-proc finalizeCXCodeCompleteResults(a: CXCodeCompleteResultsWrapper) = 
+proc finalizeCXCodeCompleteResults(a: CXWCodeCompleteResults) = 
   if isNil(a.data.pointer): 
     return 
   disposeCodeCompleteResults(a.data)
 
-proc unWrap*(a: CXCodeCompleteResultsWrapper): ptr CXCodeCompleteResults = 
+proc unWrap*(a: CXWCodeCompleteResults): ptr CXCodeCompleteResults = 
   a.data
 
-proc newCXCodeCompleteResultsWrapper*(data: ptr CXCodeCompleteResults): CXCodeCompleteResultsWrapper = 
+proc newCXWCodeCompleteResults*(data: ptr CXCodeCompleteResults): CXWCodeCompleteResults = 
   new(result, finalizeCXCodeCompleteResults)
   result.data = data
 
-proc `Results`*(a: CXCodeCompleteResultsWrapper): type a.data[].Results {.inline.} = 
+proc `Results`*(a: CXWCodeCompleteResults): type a.data[].Results {.inline.} = 
   a.data[].Results
 
-proc `Results =`*(a: CXCodeCompleteResultsWrapper; newVal: type a.data[].Results) {.
+proc `Results =`*(a: CXWCodeCompleteResults; newVal: type a.data[].Results) {.
     inline.} = 
   a.data[].Results = newVal
 
-proc `NumResults`*(a: CXCodeCompleteResultsWrapper): type a.data[].NumResults {.
+proc `NumResults`*(a: CXWCodeCompleteResults): type a.data[].NumResults {.
     inline.} = 
   a.data[].NumResults
 
-proc `NumResults =`*(a: CXCodeCompleteResultsWrapper; 
+proc `NumResults =`*(a: CXWCodeCompleteResults; 
                      newVal: type a.data[].NumResults) {.inline.} = 
   a.data[].NumResults = newVal
 
 type 
-  CXRemappingWrapper* = ref object 
+  CXWRemapping* = ref object 
     data: CXRemapping
 
-proc finalizeCXRemapping(a: CXRemappingWrapper) = 
+proc finalizeCXRemapping(a: CXWRemapping) = 
   if isNil(a.data.pointer): 
     return 
   dispose(a.data)
 
-proc unWrap*(a: CXRemappingWrapper): CXRemapping = 
+proc unWrap*(a: CXWRemapping): CXRemapping = 
   a.data
 
-proc newCXRemappingWrapper*(data: CXRemapping): CXRemappingWrapper = 
+proc newCXWRemapping*(data: CXRemapping): CXWRemapping = 
   new(result, finalizeCXRemapping)
   result.data = data
 
 
-proc getCString*(string: CXStringWrapper): string = 
+proc getCString*(string: CXWString): string = 
   return $libclang.getCString(string.data)
 
-proc createCXVirtualFileOverlay*(options: cuint): CXVirtualFileOverlayWrapper = 
-  return newCXVirtualFileOverlayWrapper(libclang.createCXVirtualFileOverlay(
+proc createCXVirtualFileOverlay*(options: cuint): CXWVirtualFileOverlay = 
+  return newCXWVirtualFileOverlay(libclang.createCXVirtualFileOverlay(
       options))
 
-proc addFileMapping*(a2: CXVirtualFileOverlayWrapper; virtualPath: cstring; 
+proc addFileMapping*(a2: CXWVirtualFileOverlay; virtualPath: cstring; 
                      realPath: cstring): CXErrorCode = 
   return libclang.addFileMapping(a2.data, virtualPath, realPath)
 
-proc setCaseSensitivity*(a2: CXVirtualFileOverlayWrapper; caseSensitive: cint): CXErrorCode = 
+proc setCaseSensitivity*(a2: CXWVirtualFileOverlay; caseSensitive: cint): CXErrorCode = 
   return libclang.setCaseSensitivity(a2.data, caseSensitive)
 
-proc writeToBuffer*(a2: CXVirtualFileOverlayWrapper; options: cuint; 
+proc writeToBuffer*(a2: CXWVirtualFileOverlay; options: cuint; 
                     out_buffer_ptr: cstringArray; out_buffer_size: var cuint): CXErrorCode = 
   return libclang.writeToBuffer(a2.data, options, out_buffer_ptr, 
                                 addr(out_buffer_size))
 
-proc createCXModuleMapDescriptor*(options: cuint): CXModuleMapDescriptorWrapper = 
-  return newCXModuleMapDescriptorWrapper(
+proc createCXModuleMapDescriptor*(options: cuint): CXWModuleMapDescriptor = 
+  return newCXWModuleMapDescriptor(
       libclang.createCXModuleMapDescriptor(options))
 
-proc setFrameworkModuleName*(a2: CXModuleMapDescriptorWrapper; name: cstring): CXErrorCode = 
+proc setFrameworkModuleName*(a2: CXWModuleMapDescriptor; name: cstring): CXErrorCode = 
   return libclang.setFrameworkModuleName(a2.data, name)
 
-proc setUmbrellaHeader*(a2: CXModuleMapDescriptorWrapper; name: cstring): CXErrorCode = 
+proc setUmbrellaHeader*(a2: CXWModuleMapDescriptor; name: cstring): CXErrorCode = 
   return libclang.setUmbrellaHeader(a2.data, name)
 
-proc writeToBuffer*(a2: CXModuleMapDescriptorWrapper; options: cuint; 
+proc writeToBuffer*(a2: CXWModuleMapDescriptor; options: cuint; 
                     out_buffer_ptr: cstringArray; out_buffer_size: var cuint): CXErrorCode = 
   return libclang.writeToBuffer(a2.data, options, out_buffer_ptr, 
                                 addr(out_buffer_size))
 
-proc createIndex*(excludeDeclarationsFromPCH: cint; displayDiagnostics: cint): CXIndexWrapper = 
-  return newCXIndexWrapper(libclang.createIndex(excludeDeclarationsFromPCH, 
+proc createIndex*(excludeDeclarationsFromPCH: cint; displayDiagnostics: cint): CXWIndex = 
+  return newCXWIndex(libclang.createIndex(excludeDeclarationsFromPCH, 
       displayDiagnostics))
 
-proc setGlobalOptions*(a2: CXIndexWrapper; options: cuint) = 
+proc setGlobalOptions*(a2: CXWIndex; options: cuint) = 
   libclang.setGlobalOptions(a2.data, options)
 
-proc getGlobalOptions*(a2: CXIndexWrapper): cuint = 
+proc getGlobalOptions*(a2: CXWIndex): cuint = 
   return libclang.getGlobalOptions(a2.data)
 
-proc getFileName*(SFile: CXFile): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getFileName(SFile))
+proc getFileName*(SFile: CXFile): CXWString = 
+  return newCXWString(libclang.getFileName(SFile))
 
-proc isFileMultipleIncludeGuarded*(tu: CXTranslationUnitWrapper; file: CXFile): cuint = 
+proc isFileMultipleIncludeGuarded*(tu: CXWTranslationUnit; file: CXFile): cuint = 
   return libclang.isFileMultipleIncludeGuarded(tu.data, file)
 
-proc getFile*(tu: CXTranslationUnitWrapper; file_name: cstring): CXFile = 
+proc getFile*(tu: CXWTranslationUnit; file_name: cstring): CXFile = 
   return libclang.getFile(tu.data, file_name)
 
-proc getLocation*(tu: CXTranslationUnitWrapper; file: CXFile; line: cuint; 
+proc getLocation*(tu: CXWTranslationUnit; file: CXFile; line: cuint; 
                   column: cuint): CXSourceLocation = 
   return libclang.getLocation(tu.data, file, line, column)
 
-proc getLocationForOffset*(tu: CXTranslationUnitWrapper; file: CXFile; 
+proc getLocationForOffset*(tu: CXWTranslationUnit; file: CXFile; 
                            offset: cuint): CXSourceLocation = 
   return libclang.getLocationForOffset(tu.data, file, offset)
 
-proc getPresumedLocation*(location: CXSourceLocation; filename: CXStringWrapper; 
+proc getPresumedLocation*(location: CXSourceLocation; filename: CXWString; 
                           line: var cuint; column: var cuint) = 
   libclang.getPresumedLocation(location, addr(filename.data), addr(line), 
                                addr(column))
 
-proc getSkippedRanges*(tu: CXTranslationUnitWrapper; file: CXFile): CXSourceRangeListWrapper = 
-  return newCXSourceRangeListWrapper(libclang.getSkippedRanges(tu.data, file))
+proc getSkippedRanges*(tu: CXWTranslationUnit; file: CXFile): CXWSourceRangeList = 
+  return newCXWSourceRangeList(libclang.getSkippedRanges(tu.data, file))
 
-proc getNumDiagnosticsInSet*(Diags: CXDiagnosticSetWrapper): cuint = 
+proc getNumDiagnosticsInSet*(Diags: CXWDiagnosticSet): cuint = 
   return libclang.getNumDiagnosticsInSet(Diags.data)
 
-proc getDiagnosticInSet*(Diags: CXDiagnosticSetWrapper; Index: cuint): CXDiagnosticWrapper = 
-  return newCXDiagnosticWrapper(libclang.getDiagnosticInSet(Diags.data, Index))
+proc getDiagnosticInSet*(Diags: CXWDiagnosticSet; Index: cuint): CXWDiagnostic = 
+  return newCXWDiagnostic(libclang.getDiagnosticInSet(Diags.data, Index))
 
 proc loadDiagnostics*(file: cstring; error: var CXLoadDiag_Error; 
-                      errorString: CXStringWrapper): CXDiagnosticSetWrapper = 
-  return newCXDiagnosticSetWrapper(libclang.loadDiagnostics(file, addr(error), 
+                      errorString: CXWString): CXWDiagnosticSet = 
+  return newCXWDiagnosticSet(libclang.loadDiagnostics(file, addr(error), 
       addr(errorString.data)))
 
-proc getChildDiagnostics*(D: CXDiagnosticWrapper): CXDiagnosticSetWrapper = 
-  return newCXDiagnosticSetWrapper(libclang.getChildDiagnostics(D.data))
+proc getChildDiagnostics*(D: CXWDiagnostic): CXWDiagnosticSet = 
+  return newCXWDiagnosticSet(libclang.getChildDiagnostics(D.data))
 
-proc getNumDiagnostics*(Unit: CXTranslationUnitWrapper): cuint = 
+proc getNumDiagnostics*(Unit: CXWTranslationUnit): cuint = 
   return libclang.getNumDiagnostics(Unit.data)
 
-proc getDiagnostic*(Unit: CXTranslationUnitWrapper; Index: cuint): CXDiagnosticWrapper = 
-  return newCXDiagnosticWrapper(libclang.getDiagnostic(Unit.data, Index))
+proc getDiagnostic*(Unit: CXWTranslationUnit; Index: cuint): CXWDiagnostic = 
+  return newCXWDiagnostic(libclang.getDiagnostic(Unit.data, Index))
 
-proc getDiagnosticSetFromTU*(Unit: CXTranslationUnitWrapper): CXDiagnosticSetWrapper = 
-  return newCXDiagnosticSetWrapper(libclang.getDiagnosticSetFromTU(Unit.data))
+proc getDiagnosticSetFromTU*(Unit: CXWTranslationUnit): CXWDiagnosticSet = 
+  return newCXWDiagnosticSet(libclang.getDiagnosticSetFromTU(Unit.data))
 
-proc formatDiagnostic*(Diagnostic: CXDiagnosticWrapper; Options: cuint): CXStringWrapper = 
-  return newCXStringWrapper(libclang.formatDiagnostic(Diagnostic.data, Options))
+proc formatDiagnostic*(Diagnostic: CXWDiagnostic; Options: cuint): CXWString = 
+  return newCXWString(libclang.formatDiagnostic(Diagnostic.data, Options))
 
-proc getDiagnosticSeverity*(a2: CXDiagnosticWrapper): CXDiagnosticSeverity = 
+proc getDiagnosticSeverity*(a2: CXWDiagnostic): CXDiagnosticSeverity = 
   return libclang.getDiagnosticSeverity(a2.data)
 
-proc getDiagnosticLocation*(a2: CXDiagnosticWrapper): CXSourceLocation = 
+proc getDiagnosticLocation*(a2: CXWDiagnostic): CXSourceLocation = 
   return libclang.getDiagnosticLocation(a2.data)
 
-proc getDiagnosticSpelling*(a2: CXDiagnosticWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getDiagnosticSpelling(a2.data))
+proc getDiagnosticSpelling*(a2: CXWDiagnostic): CXWString = 
+  return newCXWString(libclang.getDiagnosticSpelling(a2.data))
 
-proc getDiagnosticOption*(Diag: CXDiagnosticWrapper; Disable: CXStringWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getDiagnosticOption(Diag.data, 
+proc getDiagnosticOption*(Diag: CXWDiagnostic; Disable: CXWString): CXWString = 
+  return newCXWString(libclang.getDiagnosticOption(Diag.data, 
       addr(Disable.data)))
 
-proc getDiagnosticCategory*(a2: CXDiagnosticWrapper): cuint = 
+proc getDiagnosticCategory*(a2: CXWDiagnostic): cuint = 
   return libclang.getDiagnosticCategory(a2.data)
 
-proc getDiagnosticCategoryName*(Category: cuint): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getDiagnosticCategoryName(Category))
+proc getDiagnosticCategoryName*(Category: cuint): CXWString = 
+  return newCXWString(libclang.getDiagnosticCategoryName(Category))
 
-proc getDiagnosticCategoryText*(a2: CXDiagnosticWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getDiagnosticCategoryText(a2.data))
+proc getDiagnosticCategoryText*(a2: CXWDiagnostic): CXWString = 
+  return newCXWString(libclang.getDiagnosticCategoryText(a2.data))
 
-proc getDiagnosticNumRanges*(a2: CXDiagnosticWrapper): cuint = 
+proc getDiagnosticNumRanges*(a2: CXWDiagnostic): cuint = 
   return libclang.getDiagnosticNumRanges(a2.data)
 
-proc getDiagnosticRange*(Diagnostic: CXDiagnosticWrapper; Range: cuint): CXSourceRange = 
+proc getDiagnosticRange*(Diagnostic: CXWDiagnostic; Range: cuint): CXSourceRange = 
   return libclang.getDiagnosticRange(Diagnostic.data, Range)
 
-proc getDiagnosticNumFixIts*(Diagnostic: CXDiagnosticWrapper): cuint = 
+proc getDiagnosticNumFixIts*(Diagnostic: CXWDiagnostic): cuint = 
   return libclang.getDiagnosticNumFixIts(Diagnostic.data)
 
-proc getDiagnosticFixIt*(Diagnostic: CXDiagnosticWrapper; FixIt: cuint; 
-                         ReplacementRange: var CXSourceRange): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getDiagnosticFixIt(Diagnostic.data, FixIt, 
+proc getDiagnosticFixIt*(Diagnostic: CXWDiagnostic; FixIt: cuint; 
+                         ReplacementRange: var CXSourceRange): CXWString = 
+  return newCXWString(libclang.getDiagnosticFixIt(Diagnostic.data, FixIt, 
       addr(ReplacementRange)))
 
-proc getTranslationUnitSpelling*(CTUnit: CXTranslationUnitWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getTranslationUnitSpelling(CTUnit.data))
+proc getTranslationUnitSpelling*(CTUnit: CXWTranslationUnit): CXWString = 
+  return newCXWString(libclang.getTranslationUnitSpelling(CTUnit.data))
 
-proc createTranslationUnitFromSourceFile*(CIdx: CXIndexWrapper; 
+proc createTranslationUnitFromSourceFile*(CIdx: CXWIndex; 
     source_filename: string; 
     command_line_args: openarray[string];  
-    unsaved_files: var openarray[CXUnsavedFile]): CXTranslationUnitWrapper = 
+    unsaved_files: var openarray[CXUnsavedFile]): CXWTranslationUnit = 
   var num_unsaved_files: cuint = unsaved_files.len.cuint
   var cmd_line = allocCstringArray(command_line_args)
   var num_command_line_args: cint = command_line_args.len.cint
-  result = newCXTranslationUnitWrapper(CIdx, nil, libclang.createTranslationUnitFromSourceFile(
+  result = newCXWTranslationUnit(CIdx, nil, libclang.createTranslationUnitFromSourceFile(
       CIdx.data, source_filename, num_command_line_args, 
       cmd_line, num_unsaved_files, addr(unsaved_files[0])))
   deallocCStringArray(cmd_line)
 
-proc createTranslationUnit*(CIdx: CXIndexWrapper; ast_filename: string): CXTranslationUnitWrapper = 
-  return newCXTranslationUnitWrapper(CIDx, nil, libclang.createTranslationUnit(CIdx.data, 
+proc createTranslationUnit*(CIdx: CXWIndex; ast_filename: string): CXWTranslationUnit = 
+  return newCXWTranslationUnit(CIDx, nil, libclang.createTranslationUnit(CIdx.data, 
       ast_filename))
 
-proc createTranslationUnit2*(CIdx: CXIndexWrapper; ast_filename: string; 
-                             out_TU: CXTranslationUnitWrapper): CXErrorCode = 
+proc createTranslationUnit2*(CIdx: CXWIndex; ast_filename: string; 
+                             out_TU: CXWTranslationUnit): CXErrorCode = 
   return libclang.createTranslationUnit2(CIdx.data, ast_filename, 
       addr(out_TU.data))
 
-proc parseTranslationUnit*(CIdx: CXIndexWrapper; source_filename: string; 
+proc parseTranslationUnit*(CIdx: CXWIndex; source_filename: string; 
                            command_line_args: openarray[string]; 
-                           unsaved_files: var openarray[CXUnsavedFile]; 
-                           options: cuint): CXTranslationUnitWrapper =
+                           unsaved_files: var openarray[CXUnsavedFile] = newSeq[CXUnsavedFile](0); 
+                           options: cuint = 0): CXWTranslationUnit =
   var num_unsaved_files: cuint = unsaved_files.len.cuint
   var cmd_line = allocCstringArray(command_line_args)
-  var num_command_line_args: cint = command_line_args.len.cint 
-  result = newCXTranslationUnitWrapper(CIdx, nil,libclang.parseTranslationUnit(CIdx.data, 
+  var num_command_line_args: cint = command_line_args.len.cint
+  var files_ptr = if unsaved_files.len > 0: addr(unsaved_files[0]) else: nil 
+  result = newCXWTranslationUnit(CIdx, nil,libclang.parseTranslationUnit(CIdx.data, 
       source_filename, cmd_line, num_command_line_args, 
-      addr(unsaved_files[0]), num_unsaved_files, options))
+      files_ptr, num_unsaved_files, options))
+  if result.unWrap.pointer == nil:
+    raise newException(ValueError, "cannot parse translation unit")
   deallocCStringArray(cmd_line)
 
-proc parseTranslationUnit2*(CIdx: CXIndexWrapper; source_filename: string; 
+proc parseTranslationUnit2*(CIdx: CXWIndex; source_filename: string; 
                             command_line_args: openarray[string]; 
                             unsaved_files: var openarray[CXUnsavedFile]; 
                             options: cuint; 
-                            out_TU: CXTranslationUnitWrapper): CXErrorCode = 
+                            out_TU: CXWTranslationUnit): CXErrorCode = 
   var num_unsaved_files: cuint = unsaved_files.len.cuint
   var cmd_line = allocCstringArray(command_line_args)
   var num_command_line_args: cint = command_line_args.len.cint
@@ -644,227 +649,227 @@ proc parseTranslationUnit2*(CIdx: CXIndexWrapper; source_filename: string;
                                         options, addr(out_TU.data))
   deallocCStringArray(cmd_line)
 
-proc defaultSaveOptions*(TU: CXTranslationUnitWrapper): cuint = 
+proc defaultSaveOptions*(TU: CXWTranslationUnit): cuint = 
   return libclang.defaultSaveOptions(TU.data)
 
-proc saveTranslationUnit*(TU: CXTranslationUnitWrapper; FileName: cstring; 
+proc saveTranslationUnit*(TU: CXWTranslationUnit; FileName: cstring; 
                           options: cuint): cint = 
   return libclang.saveTranslationUnit(TU.data, FileName, options)
 
-proc defaultReparseOptions*(TU: CXTranslationUnitWrapper): cuint = 
+proc defaultReparseOptions*(TU: CXWTranslationUnit): cuint = 
   return libclang.defaultReparseOptions(TU.data)
 
-proc reparseTranslationUnit*(TU: CXTranslationUnitWrapper; 
+proc reparseTranslationUnit*(TU: CXWTranslationUnit; 
                              unsaved_files: var openarray[CXUnsavedFile]; options: cuint): cint = 
   var num_unsaved_files: cuint = unsaved_files.len.cuint
   return libclang.reparseTranslationUnit(TU.data, num_unsaved_files, 
       addr(unsaved_files[0]), options)
 
-proc getCXTUResourceUsage*(TU: CXTranslationUnitWrapper): CXTUResourceUsageWrapper = 
-  return newCXTUResourceUsageWrapper(libclang.getCXTUResourceUsage(TU.data))
+proc getCXTUResourceUsage*(TU: CXWTranslationUnit): CXWTUResourceUsage = 
+  return newCXWTUResourceUsage(libclang.getCXTUResourceUsage(TU.data))
 
-proc getTranslationUnitCursor*(a2: CXTranslationUnitWrapper): CXCursor = 
+proc getTranslationUnitCursor*(a2: CXWTranslationUnit): CXCursor = 
   return libclang.getTranslationUnitCursor(a2.data)
 
 proc getCursorPlatformAvailability*(cursor: CXCursor; 
                                     always_deprecated: var cint; 
-                                    deprecated_message: CXStringWrapper; 
+                                    deprecated_message: CXWString; 
                                     always_unavailable: var cint; 
-                                    unavailable_message: CXStringWrapper; 
-    availability: CXPlatformAvailabilityWrapper): cint = 
+                                    unavailable_message: CXWString; 
+    availability: CXWPlatformAvailability): cint = 
   let availability_size:cint = availability.len
   return libclang.getCursorPlatformAvailability(cursor, addr(always_deprecated), 
       addr(deprecated_message.data), addr(always_unavailable), 
       addr(unavailable_message.data), availability.data, availability_size)
 
 #FIXME: this probably returns a reference that we already have?!
-#proc getTranslationUnit*(a2: CXCursor): CXTranslationUnitWrapper =
-#  return newCXTranslationUnitWrapper(nil, nil,libclang.getTranslationUnit(a2))
+#proc getTranslationUnit*(a2: CXCursor): CXWTranslationUnit =
+#  return newCXWTranslationUnit(nil, nil,libclang.getTranslationUnit(a2))
 
 
-proc createCXCursorSet*(): CXCursorSetWrapper = 
-  return newCXCursorSetWrapper(libclang.createCXCursorSet())
+proc createCXCursorSet*(): CXWCursorSet = 
+  return newCXWCursorSet(libclang.createCXCursorSet())
 
-proc contains*(cset: CXCursorSetWrapper; cursor: CXCursor): cuint = 
+proc contains*(cset: CXWCursorSet; cursor: CXCursor): cuint = 
   return libclang.contains(cset.data, cursor)
 
-proc insert*(cset: CXCursorSetWrapper; cursor: CXCursor): cuint = 
+proc insert*(cset: CXWCursorSet; cursor: CXCursor): cuint = 
   return libclang.insert(cset.data, cursor)
 
-proc getCursor*(a2: CXTranslationUnitWrapper; a3: CXSourceLocation): CXCursor = 
+proc getCursor*(a2: CXWTranslationUnit; a3: CXSourceLocation): CXCursor = 
   return libclang.getCursor(a2.data, a3)
 
-proc getTypeSpelling*(CT: CXType): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getTypeSpelling(CT))
+proc getTypeSpelling*(CT: CXType): CXWString = 
+  return newCXWString(libclang.getTypeSpelling(CT))
 
-proc getDeclObjCTypeEncoding*(C: CXCursor): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getDeclObjCTypeEncoding(C))
+proc getDeclObjCTypeEncoding*(C: CXCursor): CXWString = 
+  return newCXWString(libclang.getDeclObjCTypeEncoding(C))
 
-proc getTypeKindSpelling*(K: CXTypeKind): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getTypeKindSpelling(K))
+proc getTypeKindSpelling*(K: CXTypeKind): CXWString = 
+  return newCXWString(libclang.getTypeKindSpelling(K))
 
-proc getCursorUSR*(a2: CXCursor): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getCursorUSR(a2))
+proc getCursorUSR*(a2: CXCursor): CXWString = 
+  return newCXWString(libclang.getCursorUSR(a2))
 
-proc objCClass*(class_name: cstring): CXStringWrapper = 
-  return newCXStringWrapper(libclang.objCClass(class_name))
+proc objCClass*(class_name: cstring): CXWString = 
+  return newCXWString(libclang.objCClass(class_name))
 
-proc objCCategory*(class_name: cstring; category_name: cstring): CXStringWrapper = 
-  return newCXStringWrapper(libclang.objCCategory(class_name, category_name))
+proc objCCategory*(class_name: cstring; category_name: cstring): CXWString = 
+  return newCXWString(libclang.objCCategory(class_name, category_name))
 
-proc objCProtocol*(protocol_name: cstring): CXStringWrapper = 
-  return newCXStringWrapper(libclang.objCProtocol(protocol_name))
+proc objCProtocol*(protocol_name: cstring): CXWString = 
+  return newCXWString(libclang.objCProtocol(protocol_name))
 
-proc objCIvar*(name: cstring; classUSR: CXStringWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.objCIvar(name, classUSR.data))
+proc objCIvar*(name: cstring; classUSR: CXWString): CXWString = 
+  return newCXWString(libclang.objCIvar(name, classUSR.data))
 
 proc objCMethod*(name: cstring; isInstanceMethod: cuint; 
-                 classUSR: CXStringWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.objCMethod(name, isInstanceMethod, 
+                 classUSR: CXWString): CXWString = 
+  return newCXWString(libclang.objCMethod(name, isInstanceMethod, 
       classUSR.data))
 
-proc objCProperty*(property: cstring; classUSR: CXStringWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.objCProperty(property, classUSR.data))
+proc objCProperty*(property: cstring; classUSR: CXWString): CXWString = 
+  return newCXWString(libclang.objCProperty(property, classUSR.data))
 
-proc getCursorSpelling*(a2: CXCursor): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getCursorSpelling(a2))
+proc getCursorSpelling*(a2: CXCursor): CXWString = 
+  return newCXWString(libclang.getCursorSpelling(a2))
 
-proc getCursorDisplayName*(a2: CXCursor): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getCursorDisplayName(a2))
+proc getCursorDisplayName*(a2: CXCursor): CXWString = 
+  return newCXWString(libclang.getCursorDisplayName(a2))
 
-proc getRawCommentText*(C: CXCursor): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getRawCommentText(C))
+proc getRawCommentText*(C: CXCursor): CXWString = 
+  return newCXWString(libclang.getRawCommentText(C))
 
-proc getBriefCommentText*(C: CXCursor): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getBriefCommentText(C))
+proc getBriefCommentText*(C: CXCursor): CXWString = 
+  return newCXWString(libclang.getBriefCommentText(C))
 
-proc getMangling*(a2: CXCursor): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getMangling(a2))
+proc getMangling*(a2: CXCursor): CXWString = 
+  return newCXWString(libclang.getMangling(a2))
 
-proc getModuleForFile*(a2: CXTranslationUnitWrapper; a3: CXFile): CXModule = 
+proc getModuleForFile*(a2: CXWTranslationUnit; a3: CXFile): CXModule = 
   return libclang.getModuleForFile(a2.data, a3)
 
-proc getName*(Module: CXModule): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getName(Module))
+proc getName*(Module: CXModule): CXWString = 
+  return newCXWString(libclang.getName(Module))
 
-proc getFullName*(Module: CXModule): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getFullName(Module))
+proc getFullName*(Module: CXModule): CXWString = 
+  return newCXWString(libclang.getFullName(Module))
 
-proc getNumTopLevelHeaders*(a2: CXTranslationUnitWrapper; Module: CXModule): cuint = 
+proc getNumTopLevelHeaders*(a2: CXWTranslationUnit; Module: CXModule): cuint = 
   return libclang.getNumTopLevelHeaders(a2.data, Module)
 
-proc getTopLevelHeader*(a2: CXTranslationUnitWrapper; Module: CXModule; 
+proc getTopLevelHeader*(a2: CXWTranslationUnit; Module: CXModule; 
                         Index: cuint): CXFile = 
   return libclang.getTopLevelHeader(a2.data, Module, Index)
 
 
-proc getTokenSpelling*(a2: CXTranslationUnitWrapper; a3: CXToken): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getTokenSpelling(a2.data, a3))
+proc getTokenSpelling*(a2: CXWTranslationUnit; a3: CXToken): CXWString = 
+  return newCXWString(libclang.getTokenSpelling(a2.data, a3))
 
-proc getTokenLocation*(a2: CXTranslationUnitWrapper; a3: CXToken): CXSourceLocation = 
+proc getTokenLocation*(a2: CXWTranslationUnit; a3: CXToken): CXSourceLocation = 
   return libclang.getTokenLocation(a2.data, a3)
 
-proc getTokenExtent*(a2: CXTranslationUnitWrapper; a3: CXToken): CXSourceRange = 
+proc getTokenExtent*(a2: CXWTranslationUnit; a3: CXToken): CXSourceRange = 
   return libclang.getTokenExtent(a2.data, a3)
 
-proc tokenize*(TU: CXTranslationUnitWrapper; Range: CXSourceRange): CXTokenWrapper = 
-  result = newCXTokenWrapper(TU, nil, 0)
+proc tokenize*(TU: CXWTranslationUnit; Range: CXSourceRange): CXWTokenArray = 
+  result = newCXWTokenArray(TU, nil, 0)
   libclang.tokenize(TU.data, Range, addr(result.data), addr(result.numTokens))
 
-proc annotateTokens*(Tokens: CXTokenWrapper): seq[CXCursor] =
+proc annotateTokens*(Tokens: CXWTokenArray): seq[CXCursor] =
   result = newSeq[CXCursor](Tokens.numTokens.int)
   libclang.annotateTokens(Tokens.tu.data, Tokens.data, Tokens.numTokens, 
                           result[0].addr)
 
-proc getCursorKindSpelling*(Kind: CXCursorKind): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getCursorKindSpelling(Kind))
+proc getCursorKindSpelling*(Kind: CXCursorKind): CXWString = 
+  return newCXWString(libclang.getCursorKindSpelling(Kind))
 
 proc getCompletionChunkText*(completion_string: CXCompletionString; 
-                             chunk_number: cuint): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getCompletionChunkText(completion_string, 
+                             chunk_number: cuint): CXWString = 
+  return newCXWString(libclang.getCompletionChunkText(completion_string, 
       chunk_number))
 
 proc getCompletionAnnotation*(completion_string: CXCompletionString; 
-                              annotation_number: cuint): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getCompletionAnnotation(completion_string, 
+                              annotation_number: cuint): CXWString = 
+  return newCXWString(libclang.getCompletionAnnotation(completion_string, 
       annotation_number))
 
-proc getCompletionParent*(completion_string: CXCompletionString): CXStringWrapper =
+proc getCompletionParent*(completion_string: CXCompletionString): CXWString =
   # kind is deprecated, always pass nil 
-  return newCXStringWrapper(libclang.getCompletionParent(completion_string, 
+  return newCXWString(libclang.getCompletionParent(completion_string, 
       nil))
 
-proc getCompletionBriefComment*(completion_string: CXCompletionString): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getCompletionBriefComment(completion_string))
+proc getCompletionBriefComment*(completion_string: CXCompletionString): CXWString = 
+  return newCXWString(libclang.getCompletionBriefComment(completion_string))
 
-proc codeCompleteAt*(TU: CXTranslationUnitWrapper; complete_filename: cstring; 
+proc codeCompleteAt*(TU: CXWTranslationUnit; complete_filename: cstring; 
                      complete_line: cuint; complete_column: cuint; 
                      unsaved_files: var openarray[CXUnsavedFile];  
-                     options: cuint): CXCodeCompleteResultsWrapper = 
+                     options: cuint): CXWCodeCompleteResults = 
   var num_unsaved_files: cuint = unsaved_files.len.cuint
-  return newCXCodeCompleteResultsWrapper(libclang.codeCompleteAt(TU.data, 
+  return newCXWCodeCompleteResults(libclang.codeCompleteAt(TU.data, 
       complete_filename, complete_line, complete_column, addr(unsaved_files[0]), 
       num_unsaved_files, options))
 
-proc codeCompleteGetNumDiagnostics*(Results: CXCodeCompleteResultsWrapper): cuint = 
+proc codeCompleteGetNumDiagnostics*(Results: CXWCodeCompleteResults): cuint = 
   return libclang.codeCompleteGetNumDiagnostics(Results.data)
 
-proc codeCompleteGetDiagnostic*(Results: CXCodeCompleteResultsWrapper; 
-                                Index: cuint): CXDiagnosticWrapper = 
-  return newCXDiagnosticWrapper(libclang.codeCompleteGetDiagnostic(
+proc codeCompleteGetDiagnostic*(Results: CXWCodeCompleteResults; 
+                                Index: cuint): CXWDiagnostic = 
+  return newCXWDiagnostic(libclang.codeCompleteGetDiagnostic(
       Results.data, Index))
 
-proc codeCompleteGetContexts*(Results: CXCodeCompleteResultsWrapper): culonglong = 
+proc codeCompleteGetContexts*(Results: CXWCodeCompleteResults): culonglong = 
   return libclang.codeCompleteGetContexts(Results.data)
 
-proc codeCompleteGetContainerKind*(Results: CXCodeCompleteResultsWrapper; 
+proc codeCompleteGetContainerKind*(Results: CXWCodeCompleteResults; 
                                    IsIncomplete: var cuint): CXCursorKind = 
   return libclang.codeCompleteGetContainerKind(Results.data, 
       addr(IsIncomplete))
 
-proc codeCompleteGetContainerUSR*(Results: CXCodeCompleteResultsWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.codeCompleteGetContainerUSR(
+proc codeCompleteGetContainerUSR*(Results: CXWCodeCompleteResults): CXWString = 
+  return newCXWString(libclang.codeCompleteGetContainerUSR(
       Results.data))
 
-proc codeCompleteGetObjCSelector*(Results: CXCodeCompleteResultsWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.codeCompleteGetObjCSelector(
+proc codeCompleteGetObjCSelector*(Results: CXWCodeCompleteResults): CXWString = 
+  return newCXWString(libclang.codeCompleteGetObjCSelector(
       Results.data))
 
-proc getClangVersion*(): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getClangVersion())
+proc getClangVersion*(): CXWString = 
+  return newCXWString(libclang.getClangVersion())
 
-proc getInclusions*(tu: CXTranslationUnitWrapper; visitor: CXInclusionVisitor; 
+proc getInclusions*(tu: CXWTranslationUnit; visitor: CXInclusionVisitor; 
                     client_data: CXClientData) = 
   libclang.getInclusions(tu.data, visitor, client_data)
 
-proc getRemappings*(path: string): CXRemappingWrapper = 
-  return newCXRemappingWrapper(libclang.getRemappings(path))
+proc getRemappings*(path: string): CXWRemapping = 
+  return newCXWRemapping(libclang.getRemappings(path))
 
-proc getRemappingsFromFileList*(filePaths: cstringArray; numFiles: cuint): CXRemappingWrapper = 
-  return newCXRemappingWrapper(libclang.getRemappingsFromFileList(filePaths, 
+proc getRemappingsFromFileList*(filePaths: cstringArray; numFiles: cuint): CXWRemapping = 
+  return newCXWRemapping(libclang.getRemappingsFromFileList(filePaths, 
       numFiles))
 
-proc getNumFiles*(a2: CXRemappingWrapper): cuint = 
+proc getNumFiles*(a2: CXWRemapping): cuint = 
   return libclang.getNumFiles(a2.data)
 
-proc getFilenames*(a2: CXRemappingWrapper; index: cuint; 
-                   original: CXStringWrapper; transformed: CXStringWrapper) = 
+proc getFilenames*(a2: CXWRemapping; index: cuint; 
+                   original: CXWString; transformed: CXWString) = 
   libclang.getFilenames(a2.data, index, addr(original.data), 
                         addr(transformed.data))
 
-proc findIncludesInFile*(TU: CXTranslationUnitWrapper; file: CXFile; 
+proc findIncludesInFile*(TU: CXWTranslationUnit; file: CXFile; 
                          visitor: CXCursorAndRangeVisitor): CXResult = 
   return libclang.findIncludesInFile(TU.data, file, visitor)
 
-proc createIndexAction*(CIdx: CXIndexWrapper): CXIndexActionWrapper = 
-  return newCXIndexActionWrapper(libclang.createIndexAction(CIdx.data))
+proc createIndexAction*(CIdx: CXWIndex): CXWIndexAction = 
+  return newCXWIndexAction(libclang.createIndexAction(CIdx.data))
 
-proc indexSourceFile*(a2: CXIndexActionWrapper; client_data: CXClientData; 
+proc indexSourceFile*(a2: CXWIndexAction; client_data: CXClientData; 
                       index_callbacks: var openarray[IndexerCallbacks]; 
                       index_options: cuint; 
                       source_filename: string; command_line_args: openarray[string]; 
                       unsaved_files: var openarray[CXUnsavedFile]; 
-                      TU_options: cuint): CXTranslationUnitWrapper =
+                      TU_options: cuint): CXWTranslationUnit =
   var temp: CXTranslationUnit 
   var cmd_line = allocCstringArray(command_line_args)
   var index_callbacks_size = index_callbacks.len.cuint
@@ -878,12 +883,12 @@ proc indexSourceFile*(a2: CXIndexActionWrapper; client_data: CXClientData;
   deallocCStringArray(cmd_line)
   if retval != 0:
     raise newException(ValueError, "compiler could not index source file without unrecoverable errors")
-  result = newCXTranslationUnitWrapper(nil, a2, temp)
+  result = newCXWTranslationUnit(nil, a2, temp)
 
-proc indexTranslationUnit*[T](a2: CXIndexActionWrapper; client_data: ptr T; 
+proc indexTranslationUnit*[T](a2: CXWIndexAction; client_data: ptr T; 
                            index_callbacks: var openarray[IndexerCallbacks]; 
                            index_options: cuint; 
-                           a7: CXTranslationUnitWrapper) = 
+                           a7: CXWTranslationUnit) = 
   var index_callbacks_size = index_callbacks.len.cuint
   var client_data_raw = client_data.CXClientData
   let retVal = libclang.indexTranslationUnit(a2.data, client_data_raw, 
@@ -894,12 +899,22 @@ proc indexTranslationUnit*[T](a2: CXIndexActionWrapper; client_data: ptr T;
     raise newException(ValueError, "compiler could not index translation unit without unrecoverable errors")
 
 
-proc getOverriddenCursors*(cursor: CXCursor): CXCursorWrapper =
+proc getOverriddenCursors*(cursor: CXCursor): CXWCursor =
   var num_overridden: cuint
   var overriden: ptr CXCursor
   libclang.getOverriddenCursors(cursor, overriden.addr, 
                                 addr(num_overridden))
-  result = newCXCursorWrapper(overriden,num_overridden)
+  result = newCXWCursor(overriden,num_overridden)
+  
+  
+##### start not wrapped, but return value changed #####
+
+proc equalLocations*(loc1: CXSourceLocation; loc2: CXSourceLocation): bool =
+  result = libclang.equalLocations(loc1,loc2) != 0
+
+proc isNull*(range: CXSourceRange): bool =
+  result = libclang.isNull(range) != 0  
+  
 
 when isMainModule:
   echo getClangVersion()
