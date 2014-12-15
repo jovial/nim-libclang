@@ -1,4 +1,4 @@
-import utils
+import "../utils"
 import os
 import streams
 import libclang
