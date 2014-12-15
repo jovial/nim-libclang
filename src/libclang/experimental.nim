@@ -12,7 +12,7 @@ import unsigned
 #   must be called before clang_disposeTranslationUnit(tu)
 # - getTranslationUnit returns a reference we may already have (there may be others) - double free (commented out for now)
 # - some procedures should return a result instead of using an OUT param
-# - make wrapper names consistent. Should wrappers holding arrays have Array in the name?
+# - make wrapper names consistent. Should wrappers holding arrays have Array in the name? i.e CXWPlatformAvailability, CXWCursor
 
 
 type 
