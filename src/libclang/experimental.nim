@@ -1,9 +1,14 @@
+## Module status: unfinished, presume not working
+
 import libclang
+{.deadCodeElim: on.} # required as some procedures missing (at least on my version)
 
-
-# start wrapper objs
-# I think this is a mess as disposal is order dependent, eg clang_disposeTokens(tu,...)
+# TODOs
+# - replace cstring in wrapped procedures
+# - helper procedures for array access
+# - fix order order dependent stuff, eg clang_disposeTokens(tu,...)
 # must be called before clang_disposeTranslationUnit(tu)
+#     -- known bad: IndexWrapper
 
 
 type 
@@ -17,6 +22,10 @@ proc finalizeCXString(a: CXStringWrapper) =
 
 proc unWrap*(a: CXStringWrapper): CXString = 
   a.data
+
+proc `$`(a: CXStringWrapper): string =
+  let cxstring = a.unwrap()
+  $getCString(cxstring)
 
 proc newCXStringWrapper*(data: CXString): CXStringWrapper = 
   new(result, finalizeCXString)
@@ -67,6 +76,7 @@ proc newCXModuleMapDescriptorWrapper*(data: CXModuleMapDescriptor): CXModuleMapD
   new(result, finalizeCXModuleMapDescriptor)
   result.data = data
 
+#FIXME: all translation units must be freed before we can free this
 type 
   CXIndexWrapper* = ref object 
     data: CXIndex
@@ -197,95 +207,82 @@ proc `entries =`*(a: CXTUResourceUsageWrapper; newVal: type a.data.entries) {.
     inline.} = 
   a.data.entries = newVal
 
-type
-  WrappingMethod {.pure.} = enum
-    CALL_DISPOSE,
-    WRAP_CONCRETE, #wrap object in ptr wrapper
-    NO_DISPOSE, # wrap normal array?
-    
+type NotImplError* = object of Exception
 
+# acts as marker
+type CXCursorWrapper = ref object of RootObj
+
+method unWrap(CXCursorWrapper): ptr CXCursor =
+  raise newException(NotImplError, "you must implement this method in subtypes")
+  
+proc `kind`*(a: CXCursorWrapper): type CXCursorKind {.inline.} = 
+  a.unWrap()[].kind
+
+proc `kind =`*(a: CXCursorWrapper; newVal: CXCursorKind) {.inline.} = 
+  a.unWrap()[].kind = newVal
+
+proc `xdata`*(a: CXCursorWrapper): cint {.inline.} = 
+  a.unWrap()[].xdata
+
+proc `xdata =`*(a: CXCursorWrapper; newVal: cint) {.inline.} = 
+  a.unWrap()[].xdata = newVal
+
+proc `data`*(a: CXCursorWrapper): array[3, pointer] {.inline.} = 
+  a.unWrap()[].data
+
+proc `data =`*(a: CXCursorWrapper; newVal: array[3, pointer]) {.inline.} = 
+  a.unWrap()[].data = newVal
+   
 type 
-  CXCursorWrapper* = ref object
-    case kind: WrappingMethod
-    of WrappingMethod.CALLDISPOSE:  
-      data: ptr CXCursor
-    of WrappingMethod.WRAP_CONCRETE:
-      concrete: CXCursor
-    of WrappingMethod.NO_DISPOSE:
-      noDispose: ptr CXCursor
+  CXCursorDisposeWrapper* = ref object of CXCursorWrapper
+    data: ptr CXCursor
 
-proc finalizeCXCursor(a: CXCursorWrapper) =
-  case a.kind:
-  of WrappingMethod.CALLDISPOSE: 
-    if isNil(a.data.pointer): 
-      return 
-    disposeOverriddenCursors(a.data)
-  else:
-    discard
+proc finalizeCXCursor(a: CXCursorDisposeWrapper) = 
+  if isNil(a.data.pointer): 
+    return 
+  disposeOverriddenCursors(a.data)
 
-proc unWrap*(a: CXCursorWrapper): ptr CXCursor =
-  case a.kind:
-  of WrappingMethod.WRAP_CONCRETE:
-    a.concrete.addr
-  else: 
-    a.data
+method unWrap*(a: CXCursorDisposeWrapper): ptr CXCursor = 
+  a.data
 
-proc newCXCursorWrapper*(kind:WrappingMethod, data: ptr CXCursor): CXCursorWrapper = 
+proc newCXCursorDisposeWrapper*(data: ptr CXCursor): CXCursorDisposeWrapper = 
   new(result, finalizeCXCursor)
-  result.kind = kind
   result.data = data
 
-proc newCXCursorWrapper*(data: CXCursor): CXCursorWrapper = 
+
+type 
+  CXCursorConcreteWrapper* = ref object of CXCursorWrapper
+    data: CXCursor
+
+method unWrap*(a: CXCursorConcreteWrapper): ptr CXCursor = 
+  a.data.addr
+
+proc newCXCursorWrapper*(data: CXCursor): CXCursorConcreteWrapper = 
   new(result)
-  result.kind = WrappingMethod.WRAP_CONCRETE
-  result.concrete = data
-
-proc `kind`*(a: CXCursorWrapper): type a.data[].kind {.inline.} =
-  case a.kind:
-  of WrappingMethod.WRAP_CONCRETE:
-    a.concrete.kind
-  of WrappingMethod.NO_DISPOSE:
-    a.noDispose[].kind
-  else: 
-    a.data[].kind 
+  result.data = data
   
+type 
+  Cursor* = ref object of CXCursorWrapper
+    data: ptr CXCursor
 
-proc `kind =`*(a: CXCursorWrapper; newVal: type a.data[].kind) {.inline.} = 
-  case a.kind:
-  of WrappingMethod.WRAP_CONCRETE:
-    a.concrete.kind = newVal
-  of WrappingMethod.NO_DISPOSE:
-    a.noDispose[].kind = newVal
-  else: 
-    a.data[].kind = newVal
+method unWrap*(a: Cursor): ptr CXCursor = 
+  a.data
+
+proc newCXCursorWrapper*(data: ptr CXCursor): Cursor = 
+  new(result)
+  result.data = data
   
-proc `xdata`*(a: CXCursorWrapper): type a.data[].xdata {.inline.} =
-  case a.kind:
-  of WrappingMethod.WRAP_CONCRETE:
-    a.concrete.xdata
-  else: 
-    a.data[].xdata 
+type 
+  CursorArray* = ref object of CXCursorWrapper
+    data: seq[CXCursor]
 
-proc `xdata =`*(a: CXCursorWrapper; newVal: type a.data[].xdata) {.inline.} = 
-  case a.kind:
-  of WrappingMethod.WRAP_CONCRETE:
-    a.concrete.xdata = newVal
-  else: 
-    a.data[].xdata = newVal
+method unWrap*(a: CursorArray): ptr CXCursor = 
+  a.data[0].addr
 
-proc `data`*(a: CXCursorWrapper): type a.data[].data {.inline.} =
-  case a.kind:
-  of WrappingMethod.WRAP_CONCRETE:
-    a.concrete.data
-  else: 
-    a.data[].data  
+proc newCXCursorWrapper*(numTokens: cuint): CursorArray = 
+  new(result)
+  result.data = newSeq[CXCursor](numTokens.int)
 
-proc `data =`*(a: CXCursorWrapper; newVal: type a.data[].data) {.inline.} = 
-  case a.kind:
-  of WrappingMethod.WRAP_CONCRETE:
-    a.concrete.data = newVal
-  else: 
-    a.data[].data = newVal 
 
 type 
   CXPlatformAvailabilityWrapper* = ref object 
@@ -660,153 +657,198 @@ proc getTranslationUnitCursor*(a2: CXTranslationUnitWrapper): CXCursorWrapper =
   return newCXCursorWrapper(libclang.getTranslationUnitCursor(a2.data))
 
 proc equalCursors*(a2: CXCursorWrapper; a3: CXCursorWrapper): cuint = 
-  return libclang.equalCursors(a2.data, a3.data)
+  let a2U = a2.unWrap()
+  let a3U = a3.unWrap()
+  return libclang.equalCursors(a2U[], a3U[])
 
-proc isNull*(cursor: CXCursorWrapper): cint = 
-  return libclang.isNull(cursor.data)
+proc isNull*(cursor: CXCursorWrapper): cint =
+  let cU = cursor.unWrap() 
+  return libclang.isNull(cU[])
 
-proc hashCursor*(a2: CXCursorWrapper): cuint = 
-  return libclang.hashCursor(a2.data)
+proc hashCursor*(a2: CXCursorWrapper): cuint =
+  let cU = a2.unWrap()  
+  return libclang.hashCursor(cU[])
 
-proc getCursorKind*(a2: CXCursorWrapper): CXCursorKind = 
-  return libclang.getCursorKind(a2.data)
+proc getCursorKind*(a2: CXCursorWrapper): CXCursorKind =
+  let cU = a2.unWrap()  
+  return libclang.getCursorKind(cU[])
 
-proc getCursorLinkage*(cursor: CXCursorWrapper): CXLinkageKind = 
-  return libclang.getCursorLinkage(cursor.data)
+proc getCursorLinkage*(cursor: CXCursorWrapper): CXLinkageKind =
+  let cU = cursor.unWrap()  
+  return libclang.getCursorLinkage(cU[])
 
-proc getCursorAvailability*(cursor: CXCursorWrapper): CXAvailabilityKind = 
-  return libclang.getCursorAvailability(cursor.data)
+proc getCursorAvailability*(cursor: CXCursorWrapper): CXAvailabilityKind =
+  let cU = cursor.unWrap()   
+  return libclang.getCursorAvailability(cU[])
 
 proc getCursorPlatformAvailability*(cursor: CXCursorWrapper; 
                                     always_deprecated: var cint; 
                                     deprecated_message: CXStringWrapper; 
                                     always_unavailable: var cint; 
                                     unavailable_message: CXStringWrapper; 
-    availability: CXPlatformAvailabilityWrapper; availability_size: cint): cint = 
-  return libclang.getCursorPlatformAvailability(cursor.data, 
+    availability: CXPlatformAvailabilityWrapper; availability_size: cint): cint =
+  let cU = cursor.unWrap()    
+  return libclang.getCursorPlatformAvailability(cU[], 
       addr(always_deprecated), addr(deprecated_message.data), 
       addr(always_unavailable), addr(unavailable_message.data), 
-      addr(availability.data), availability_size)
+      availability.data, availability_size)
 
-proc getCursorLanguage*(cursor: CXCursorWrapper): CXLanguageKind = 
-  return libclang.getCursorLanguage(cursor.data)
+proc getCursorLanguage*(cursor: CXCursorWrapper): CXLanguageKind =
+  let cU = cursor.unWrap() 
+  return libclang.getCursorLanguage(cU[])
 
-proc getTranslationUnit*(a2: CXCursorWrapper): CXTranslationUnitWrapper = 
-  return newCXTranslationUnitWrapper(libclang.getTranslationUnit(a2.data))
+proc getTranslationUnit*(a2: CXCursorWrapper): CXTranslationUnitWrapper =
+  let cU = a2.unWrap() 
+  return newCXTranslationUnitWrapper(libclang.getTranslationUnit(cu[]))
 
 proc createCXCursorSet*(): CXCursorSetWrapper = 
   return newCXCursorSetWrapper(libclang.createCXCursorSet())
 
-proc contains*(cset: CXCursorSetWrapper; cursor: CXCursorWrapper): cuint = 
-  return libclang.contains(cset.data, cursor.data)
+proc contains*(cset: CXCursorSetWrapper; cursor: CXCursorWrapper): cuint =
+  let cU = cursor.unWrap() 
+  return libclang.contains(cset.data, cU[])
 
-proc insert*(cset: CXCursorSetWrapper; cursor: CXCursorWrapper): cuint = 
-  return libclang.insert(cset.data, cursor.data)
+proc insert*(cset: CXCursorSetWrapper; cursor: CXCursorWrapper): cuint =
+  let cU = cursor.unWrap() 
+  return libclang.insert(cset.data, cU[])
 
-proc getCursorSemanticParent*(cursor: CXCursorWrapper): CXCursorWrapper = 
-  return newCXCursorWrapper(libclang.getCursorSemanticParent(cursor.data))
+proc getCursorSemanticParent*(cursor: CXCursorWrapper): CXCursorWrapper =
+  let cU = cursor.unWrap() 
+  return newCXCursorWrapper(libclang.getCursorSemanticParent(cU[]))
 
-proc getCursorLexicalParent*(cursor: CXCursorWrapper): CXCursorWrapper = 
-  return newCXCursorWrapper(libclang.getCursorLexicalParent(cursor.data))
+proc getCursorLexicalParent*(cursor: CXCursorWrapper): CXCursorWrapper =
+  let cU = cursor.unWrap() 
+  return newCXCursorWrapper(libclang.getCursorLexicalParent(cU[]))
 
-proc getOverriddenCursors*(cursor: CXCursorWrapper; overridden: CXCursorWrapper; 
-                           num_overridden: var cuint) = 
-  libclang.getOverriddenCursors(cursor.data, addr(overridden.data), 
+proc getOverriddenCursors*(cursor: CXCursorWrapper; 
+                           num_overridden: var cuint): CXCursorWrapper =
+  result = newCXCursorDisposeWrapper(nil)
+  var overU = result.unWrap()
+  let cU = cursor.unWrap() 
+  libclang.getOverriddenCursors(cU[], overU.addr, 
                                 addr(num_overridden))
 
 proc getIncludedFile*(cursor: CXCursorWrapper): CXFile = 
-  return libclang.getIncludedFile(cursor.data)
+  let cU = cursor.unWrap()
+  return libclang.getIncludedFile(cU[])
 
 proc getCursor*(a2: CXTranslationUnitWrapper; a3: CXSourceLocation): CXCursorWrapper = 
   return newCXCursorWrapper(libclang.getCursor(a2.data, a3))
 
-proc getCursorLocation*(a2: CXCursorWrapper): CXSourceLocation = 
-  return libclang.getCursorLocation(a2.data)
+proc getCursorLocation*(a2: CXCursorWrapper): CXSourceLocation =
+  let cU = a2.unWrap() 
+  return libclang.getCursorLocation(cU[])
 
-proc getCursorExtent*(a2: CXCursorWrapper): CXSourceRange = 
-  return libclang.getCursorExtent(a2.data)
+proc getCursorExtent*(a2: CXCursorWrapper): CXSourceRange =
+  let cU = a2.unWrap()  
+  return libclang.getCursorExtent(cU[])
 
-proc getCursorType*(C: CXCursorWrapper): CXType = 
-  return libclang.getCursorType(C.data)
+proc getCursorType*(C: CXCursorWrapper): CXType =
+  let cU = C.unWrap()  
+  return libclang.getCursorType(cU[])
 
 proc getTypeSpelling*(CT: CXType): CXStringWrapper = 
   return newCXStringWrapper(libclang.getTypeSpelling(CT))
 
-proc getTypedefDeclUnderlyingType*(C: CXCursorWrapper): CXType = 
-  return libclang.getTypedefDeclUnderlyingType(C.data)
+proc getTypedefDeclUnderlyingType*(C: CXCursorWrapper): CXType =
+  let cU = C.unWrap()  
+  return libclang.getTypedefDeclUnderlyingType(cU[])
 
 proc getEnumDeclIntegerType*(C: CXCursorWrapper): CXType = 
-  return libclang.getEnumDeclIntegerType(C.data)
+  let cU = C.unWrap() 
+  return libclang.getEnumDeclIntegerType(cU[])
 
 proc getEnumConstantDeclValue*(C: CXCursorWrapper): clonglong = 
-  return libclang.getEnumConstantDeclValue(C.data)
+  let cU = C.unWrap() 
+  return libclang.getEnumConstantDeclValue(cU[])
 
 proc getEnumConstantDeclUnsignedValue*(C: CXCursorWrapper): culonglong = 
-  return libclang.getEnumConstantDeclUnsignedValue(C.data)
+  let cU = C.unWrap() 
+  return libclang.getEnumConstantDeclUnsignedValue(cU[])
 
 proc getFieldDeclBitWidth*(C: CXCursorWrapper): cint = 
-  return libclang.getFieldDeclBitWidth(C.data)
+  let cU = C.unWrap() 
+  return libclang.getFieldDeclBitWidth(cU[])
 
 proc getNumArguments*(C: CXCursorWrapper): cint = 
-  return libclang.getNumArguments(C.data)
+  let cU = C.unWrap() 
+  return libclang.getNumArguments(cU[])
 
 proc getArgument*(C: CXCursorWrapper; i: cuint): CXCursorWrapper = 
-  return newCXCursorWrapper(libclang.getArgument(C.data, i))
+  let cU = C.unWrap() 
+  return newCXCursorWrapper(libclang.getArgument(cU[], i))
 
+#could not import: clang_Cursor_getNumTemplateArguments
 proc getNumTemplateArguments*(C: CXCursorWrapper): cint = 
-  return libclang.getNumTemplateArguments(C.data)
+  let cU = C.unWrap() 
+  return libclang.getNumTemplateArguments(cU[])
 
 proc getTemplateArgumentKind*(C: CXCursorWrapper; I: cuint): CXTemplateArgumentKind = 
-  return libclang.getTemplateArgumentKind(C.data, I)
+  let cU = C.unWrap() 
+  return libclang.getTemplateArgumentKind(cU[], I)
 
 proc getTemplateArgumentType*(C: CXCursorWrapper; I: cuint): CXType = 
-  return libclang.getTemplateArgumentType(C.data, I)
+  let cU = C.unWrap() 
+  return libclang.getTemplateArgumentType(cU[], I)
 
 proc getTemplateArgumentValue*(C: CXCursorWrapper; I: cuint): clonglong = 
-  return libclang.getTemplateArgumentValue(C.data, I)
+  let cU = C.unWrap() 
+  return libclang.getTemplateArgumentValue(cU[], I)
 
 proc getTemplateArgumentUnsignedValue*(C: CXCursorWrapper; I: cuint): culonglong = 
-  return libclang.getTemplateArgumentUnsignedValue(C.data, I)
+  let cU = C.unWrap() 
+  return libclang.getTemplateArgumentUnsignedValue(cu[], I)
 
 proc getTypeDeclaration*(T: CXType): CXCursorWrapper = 
   return newCXCursorWrapper(libclang.getTypeDeclaration(T))
 
 proc getDeclObjCTypeEncoding*(C: CXCursorWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getDeclObjCTypeEncoding(C.data))
+  let cU = C.unWrap() 
+  return newCXStringWrapper(libclang.getDeclObjCTypeEncoding(cU[]))
 
 proc getTypeKindSpelling*(K: CXTypeKind): CXStringWrapper = 
   return newCXStringWrapper(libclang.getTypeKindSpelling(K))
 
-proc getCursorResultType*(C: CXCursorWrapper): CXType = 
-  return libclang.getCursorResultType(C.data)
+proc getCursorResultType*(C: CXCursorWrapper): CXType =
+  let cU = C.unWrap()  
+  return libclang.getCursorResultType(cU[])
 
 proc isBitField*(C: CXCursorWrapper): cuint = 
-  return libclang.isBitField(C.data)
+  let cU = C.unWrap() 
+  return libclang.isBitField(cU[])
 
-proc isVirtualBase*(a2: CXCursorWrapper): cuint = 
-  return libclang.isVirtualBase(a2.data)
+proc isVirtualBase*(a2: CXCursorWrapper): cuint =
+  let cU = a2.unWrap()  
+  return libclang.isVirtualBase(cU[])
 
 proc getCXXAccessSpecifier*(a2: CXCursorWrapper): CX_CXXAccessSpecifier = 
-  return libclang.getCXXAccessSpecifier(a2.data)
+  let cU = a2.unWrap()  
+  return libclang.getCXXAccessSpecifier(cU[])
 
-proc getStorageClass*(a2: CXCursorWrapper): CX_StorageClass = 
-  return libclang.getStorageClass(a2.data)
+proc getStorageClass*(a2: CXCursorWrapper): CX_StorageClass =
+  let cU = a2.unWrap()   
+  return libclang.getStorageClass(cU[])
 
 proc getNumOverloadedDecls*(cursor: CXCursorWrapper): cuint = 
-  return libclang.getNumOverloadedDecls(cursor.data)
+  let cU = cursor.unWrap()  
+  return libclang.getNumOverloadedDecls(cU[])
 
 proc getOverloadedDecl*(cursor: CXCursorWrapper; index: cuint): CXCursorWrapper = 
-  return newCXCursorWrapper(libclang.getOverloadedDecl(cursor.data, index))
+  let cU = cursor.unWrap()
+  return newCXCursorWrapper(libclang.getOverloadedDecl(cU[], index))
 
-proc getIBOutletCollectionType*(a2: CXCursorWrapper): CXType = 
-  return libclang.getIBOutletCollectionType(a2.data)
+proc getIBOutletCollectionType*(a2: CXCursorWrapper): CXType =
+  let cU = a2.unWrap() 
+  return libclang.getIBOutletCollectionType(cU[])
 
 proc visitChildren*(parent: CXCursorWrapper; visitor: CXCursorVisitor; 
                     client_data: CXClientData): cuint = 
-  return libclang.visitChildren(parent.data, visitor, client_data)
+  let parentU = parent.unWrap()
+  return libclang.visitChildren(parentU[], visitor, client_data)
 
 proc getCursorUSR*(a2: CXCursorWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getCursorUSR(a2.data))
+  let cU = a2.unWrap()
+  return newCXStringWrapper(libclang.getCursorUSR(cU[]))
 
 proc objCClass*(class_name: cstring): CXStringWrapper = 
   return newCXStringWrapper(libclang.objCClass(class_name))
@@ -828,63 +870,82 @@ proc objCMethod*(name: cstring; isInstanceMethod: cuint;
 proc objCProperty*(property: cstring; classUSR: CXStringWrapper): CXStringWrapper = 
   return newCXStringWrapper(libclang.objCProperty(property, classUSR.data))
 
-proc getCursorSpelling*(a2: CXCursorWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getCursorSpelling(a2.data))
+proc getCursorSpelling*(a2: CXCursorWrapper): CXStringWrapper =
+  let cU = a2.unWrap() 
+  return newCXStringWrapper(libclang.getCursorSpelling(cU[]))
 
 proc getSpellingNameRange*(a2: CXCursorWrapper; pieceIndex: cuint; 
-                           options: cuint): CXSourceRange = 
-  return libclang.getSpellingNameRange(a2.data, pieceIndex, options)
+                           options: cuint): CXSourceRange =
+  let cU = a2.unWrap()                          
+  return libclang.getSpellingNameRange(cU[], pieceIndex, options)
 
 proc getCursorDisplayName*(a2: CXCursorWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getCursorDisplayName(a2.data))
+  let cU = a2.unWrap()
+  return newCXStringWrapper(libclang.getCursorDisplayName(cU[]))
 
-proc getCursorReferenced*(a2: CXCursorWrapper): CXCursorWrapper = 
-  return newCXCursorWrapper(libclang.getCursorReferenced(a2.data))
+proc getCursorReferenced*(a2: CXCursorWrapper): CXCursorWrapper =
+  let cU = a2.unWrap() 
+  return newCXCursorWrapper(libclang.getCursorReferenced(cU[]))
 
 proc getCursorDefinition*(a2: CXCursorWrapper): CXCursorWrapper = 
-  return newCXCursorWrapper(libclang.getCursorDefinition(a2.data))
+  let cU = a2.unWrap()
+  return newCXCursorWrapper(libclang.getCursorDefinition(cU[]))
 
-proc isCursorDefinition*(a2: CXCursorWrapper): cuint = 
-  return libclang.isCursorDefinition(a2.data)
+proc isCursorDefinition*(a2: CXCursorWrapper): cuint =
+  let cU = a2.unWrap() 
+  return libclang.isCursorDefinition(cU[])
 
 proc getCanonicalCursor*(a2: CXCursorWrapper): CXCursorWrapper = 
-  return newCXCursorWrapper(libclang.getCanonicalCursor(a2.data))
+  let cU = a2.unWrap()
+  return newCXCursorWrapper(libclang.getCanonicalCursor(cU[]))
 
-proc getObjCSelectorIndex*(a2: CXCursorWrapper): cint = 
-  return libclang.getObjCSelectorIndex(a2.data)
+proc getObjCSelectorIndex*(a2: CXCursorWrapper): cint =
+  let cU = a2.unWrap() 
+  return libclang.getObjCSelectorIndex(cU[])
 
-proc isDynamicCall*(C: CXCursorWrapper): cint = 
-  return libclang.isDynamicCall(C.data)
+proc isDynamicCall*(C: CXCursorWrapper): cint =
+  let cU = C.unWrap() 
+  return libclang.isDynamicCall(cU[])
 
 proc getReceiverType*(C: CXCursorWrapper): CXType = 
-  return libclang.getReceiverType(C.data)
+  let cU = C.unWrap() 
+  return libclang.getReceiverType(cU[])
 
 proc getObjCPropertyAttributes*(C: CXCursorWrapper; reserved: cuint): cuint = 
-  return libclang.getObjCPropertyAttributes(C.data, reserved)
+  let cU = C.unWrap() 
+  return libclang.getObjCPropertyAttributes(cU[], reserved)
 
 proc getObjCDeclQualifiers*(C: CXCursorWrapper): cuint = 
-  return libclang.getObjCDeclQualifiers(C.data)
+  let cU = C.unWrap() 
+  return libclang.getObjCDeclQualifiers(cU[])
 
 proc isObjCOptional*(C: CXCursorWrapper): cuint = 
-  return libclang.isObjCOptional(C.data)
+  let cU = C.unWrap() 
+  return libclang.isObjCOptional(cU[])
 
 proc isVariadic*(C: CXCursorWrapper): cuint = 
-  return libclang.isVariadic(C.data)
+  let cU = C.unWrap() 
+  return libclang.isVariadic(cU[])
 
 proc getCommentRange*(C: CXCursorWrapper): CXSourceRange = 
-  return libclang.getCommentRange(C.data)
+  let cU = C.unWrap() 
+  return libclang.getCommentRange(cU[])
 
 proc getRawCommentText*(C: CXCursorWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getRawCommentText(C.data))
+  let cU = C.unWrap() 
+  return newCXStringWrapper(libclang.getRawCommentText(cU[]))
 
-proc getBriefCommentText*(C: CXCursorWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getBriefCommentText(C.data))
+proc getBriefCommentText*(C: CXCursorWrapper): CXStringWrapper =
+  let cU = C.unWrap()  
+  return newCXStringWrapper(libclang.getBriefCommentText(cU[]))
 
-proc getMangling*(a2: CXCursorWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getMangling(a2.data))
+proc getMangling*(a2: CXCursorWrapper): CXStringWrapper =
+  let cU = a2.unWrap()  
+  return newCXStringWrapper(libclang.getMangling(cU[]))
 
 proc getModule*(C: CXCursorWrapper): CXModule = 
-  return libclang.getModule(C.data)
+  let cU = C.unWrap() 
+  return libclang.getModule(cU[])
 
 proc getModuleForFile*(a2: CXTranslationUnitWrapper; a3: CXFile): CXModule = 
   return libclang.getModuleForFile(a2.data, a3)
@@ -903,47 +964,55 @@ proc getTopLevelHeader*(a2: CXTranslationUnitWrapper; Module: CXModule;
   return libclang.getTopLevelHeader(a2.data, Module, Index)
 
 proc isPureVirtual*(C: CXCursorWrapper): cuint = 
-  return libclang.isPureVirtual(C.data)
+  let cU = C.unWrap() 
+  return libclang.isPureVirtual(cU[])
 
-proc isStatic*(C: CXCursorWrapper): cuint = 
-  return libclang.isStatic(C.data)
+proc isStatic*(C: CXCursorWrapper): cuint =
+  let cU = C.unWrap()  
+  return libclang.isStatic(cU[])
 
 proc isVirtual*(C: CXCursorWrapper): cuint = 
-  return libclang.isVirtual(C.data)
+  let cU = C.unWrap() 
+  return libclang.isVirtual(cU[])
 
 proc isConst*(C: CXCursorWrapper): cuint = 
-  return libclang.isConst(C.data)
+  let cU = C.unWrap() 
+  return libclang.isConst(cU[])
 
 proc getTemplateCursorKind*(C: CXCursorWrapper): CXCursorKind = 
-  return libclang.getTemplateCursorKind(C.data)
+  let cU = C.unWrap() 
+  return libclang.getTemplateCursorKind(cU[])
 
 proc getSpecializedCursorTemplate*(C: CXCursorWrapper): CXCursorWrapper = 
-  return newCXCursorWrapper(libclang.getSpecializedCursorTemplate(C.data))
+  let cU = C.unWrap() 
+  return newCXCursorWrapper(libclang.getSpecializedCursorTemplate(cU[]))
 
 proc getCursorReferenceNameRange*(C: CXCursorWrapper; NameFlags: cuint; 
-                                  PieceIndex: cuint): CXSourceRange = 
-  return libclang.getCursorReferenceNameRange(C.data, NameFlags, PieceIndex)
+                                  PieceIndex: cuint): CXSourceRange =
+  let cU = C.unWrap()                                  
+  return libclang.getCursorReferenceNameRange(cU[], NameFlags, PieceIndex)
 
 proc getTokenKind*(a2: CXTokenWrapper): CXTokenKind = 
-  return libclang.getTokenKind(a2.data)
+  return libclang.getTokenKind(a2.data[])
 
 proc getTokenSpelling*(a2: CXTranslationUnitWrapper; a3: CXTokenWrapper): CXStringWrapper = 
-  return newCXStringWrapper(libclang.getTokenSpelling(a2.data, a3.data))
+  return newCXStringWrapper(libclang.getTokenSpelling(a2.data, a3.data[]))
 
 proc getTokenLocation*(a2: CXTranslationUnitWrapper; a3: CXTokenWrapper): CXSourceLocation = 
-  return libclang.getTokenLocation(a2.data, a3.data)
+  return libclang.getTokenLocation(a2.data, a3.data[])
 
 proc getTokenExtent*(a2: CXTranslationUnitWrapper; a3: CXTokenWrapper): CXSourceRange = 
-  return libclang.getTokenExtent(a2.data, a3.data)
+  return libclang.getTokenExtent(a2.data, a3.data[])
 
-proc tokenize*(TU: CXTranslationUnitWrapper; Range: CXSourceRange; 
-               Tokens: CXTokenWrapper; NumTokens: var cuint) = 
-  libclang.tokenize(TU.data, Range, addr(Tokens.data), addr(NumTokens))
+proc tokenize*(TU: CXTranslationUnitWrapper; Range: CXSourceRange): CXTokenWrapper = 
+  result = newCXTokenWrapper(TU, nil, 0)
+  libclang.tokenize(TU.data, Range, addr(result.data), addr(result.numTokens))
 
-proc annotateTokens*(TU: CXTranslationUnitWrapper; Tokens: CXTokenWrapper; 
-                     NumTokens: cuint; Cursors: CXCursorWrapper) = 
-  libclang.annotateTokens(TU.data, addr(Tokens.data), NumTokens, 
-                          addr(Cursors.data))
+proc annotateTokens*(Tokens: CXTokenWrapper): CXCursorWrapper =
+  result = newCXCursorWrapper(Tokens.numTokens)
+  let cU = result.unWrap()
+  libclang.annotateTokens(Tokens.tu.data, Tokens.data, Tokens.numTokens, 
+                          cU)
 
 proc getCursorKindSpelling*(Kind: CXCursorKind): CXStringWrapper = 
   return newCXStringWrapper(libclang.getCursorKindSpelling(Kind))
@@ -953,7 +1022,8 @@ proc getDefinitionSpellingAndExtent*(a2: CXCursorWrapper;
                                      endBuf: cstringArray; startLine: var cuint; 
                                      startColumn: var cuint; endLine: var cuint; 
                                      endColumn: var cuint) = 
-  libclang.getDefinitionSpellingAndExtent(a2.data, startBuf, endBuf, 
+  let cU = a2.unwrap()                                   
+  libclang.getDefinitionSpellingAndExtent(cU[], startBuf, endBuf, 
       addr(startLine), addr(startColumn), addr(endLine), addr(endColumn))
 
 proc getCompletionChunkText*(completion_string: CXCompletionString; 
@@ -974,8 +1044,9 @@ proc getCompletionParent*(completion_string: CXCompletionString;
 proc getCompletionBriefComment*(completion_string: CXCompletionString): CXStringWrapper = 
   return newCXStringWrapper(libclang.getCompletionBriefComment(completion_string))
 
-proc getCursorCompletionString*(cursor: CXCursorWrapper): CXCompletionString = 
-  return libclang.getCursorCompletionString(cursor.data)
+proc getCursorCompletionString*(cursor: CXCursorWrapper): CXCompletionString =
+  let cU = cursor.unWrap() 
+  return libclang.getCursorCompletionString(cU[])
 
 proc codeCompleteAt*(TU: CXTranslationUnitWrapper; complete_filename: cstring; 
                      complete_line: cuint; complete_column: cuint; 
@@ -986,28 +1057,28 @@ proc codeCompleteAt*(TU: CXTranslationUnitWrapper; complete_filename: cstring;
       num_unsaved_files, options))
 
 proc codeCompleteGetNumDiagnostics*(Results: CXCodeCompleteResultsWrapper): cuint = 
-  return libclang.codeCompleteGetNumDiagnostics(addr(Results.data))
+  return libclang.codeCompleteGetNumDiagnostics(Results.data)
 
 proc codeCompleteGetDiagnostic*(Results: CXCodeCompleteResultsWrapper; 
                                 Index: cuint): CXDiagnosticWrapper = 
   return newCXDiagnosticWrapper(libclang.codeCompleteGetDiagnostic(
-      addr(Results.data), Index))
+      Results.data, Index))
 
 proc codeCompleteGetContexts*(Results: CXCodeCompleteResultsWrapper): culonglong = 
-  return libclang.codeCompleteGetContexts(addr(Results.data))
+  return libclang.codeCompleteGetContexts(Results.data)
 
 proc codeCompleteGetContainerKind*(Results: CXCodeCompleteResultsWrapper; 
                                    IsIncomplete: var cuint): CXCursorKind = 
-  return libclang.codeCompleteGetContainerKind(addr(Results.data), 
+  return libclang.codeCompleteGetContainerKind(Results.data, 
       addr(IsIncomplete))
 
 proc codeCompleteGetContainerUSR*(Results: CXCodeCompleteResultsWrapper): CXStringWrapper = 
   return newCXStringWrapper(libclang.codeCompleteGetContainerUSR(
-      addr(Results.data)))
+      Results.data))
 
 proc codeCompleteGetObjCSelector*(Results: CXCodeCompleteResultsWrapper): CXStringWrapper = 
   return newCXStringWrapper(libclang.codeCompleteGetObjCSelector(
-      addr(Results.data)))
+      Results.data))
 
 proc getClangVersion*(): CXStringWrapper = 
   return newCXStringWrapper(libclang.getClangVersion())
@@ -1033,7 +1104,8 @@ proc getFilenames*(a2: CXRemappingWrapper; index: cuint;
 
 proc findReferencesInFile*(cursor: CXCursorWrapper; file: CXFile; 
                            visitor: CXCursorAndRangeVisitor): CXResult = 
-  return libclang.findReferencesInFile(cursor.data, file, visitor)
+  let cU = cursor.unWrap()
+  return libclang.findReferencesInFile(cU[], file, visitor)
 
 proc findIncludesInFile*(TU: CXTranslationUnitWrapper; file: CXFile; 
                          visitor: CXCursorAndRangeVisitor): CXResult = 
@@ -1065,3 +1137,7 @@ proc indexTranslationUnit*(a2: CXIndexActionWrapper; client_data: CXClientData;
                                        addr(index_callbacks), 
                                        index_callbacks_size, index_options, 
                                        a7.data)
+
+when isMainModule:
+  echo getClangVersion()
+  
