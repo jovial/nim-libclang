@@ -96,6 +96,7 @@ proc newCXIndexWrapper*(data: CXIndex): CXIndexWrapper =
 type 
   CXTranslationUnitWrapper* = ref object 
     data: CXTranslationUnit
+    index: CXIndexWrapper # to keep it alive
 
 proc finalizeCXTranslationUnit(a: CXTranslationUnitWrapper) = 
   if isNil(a.data.pointer): 
@@ -105,9 +106,11 @@ proc finalizeCXTranslationUnit(a: CXTranslationUnitWrapper) =
 proc unWrap*(a: CXTranslationUnitWrapper): CXTranslationUnit = 
   a.data
 
-proc newCXTranslationUnitWrapper*(data: CXTranslationUnit): CXTranslationUnitWrapper = 
+proc newCXTranslationUnitWrapper*(index: CXIndexWrapper, data: CXTranslationUnit): CXTranslationUnitWrapper = 
+  ## You must supply a CXIndex, so that this translation doesn;t outlive it's index.
   new(result, finalizeCXTranslationUnit)
   result.data = data
+  result.index = index
 
 type 
   CXSourceRangeListWrapper* = ref object 
@@ -232,7 +235,8 @@ proc `data`*(a: CXCursorWrapper): array[3, pointer] {.inline.} =
 
 proc `data =`*(a: CXCursorWrapper; newVal: array[3, pointer]) {.inline.} = 
   a.unWrap()[].data = newVal
-   
+
+#TODO: better name - foreign array?   
 type 
   CXCursorDisposeWrapper* = ref object of CXCursorWrapper
     data: ptr CXCursor
@@ -249,7 +253,7 @@ proc newCXCursorDisposeWrapper*(data: ptr CXCursor): CXCursorDisposeWrapper =
   new(result, finalizeCXCursor)
   result.data = data
 
-
+#CHECKME: should we just remove this?!
 type 
   CXCursorConcreteWrapper* = ref object of CXCursorWrapper
     data: CXCursor
@@ -261,16 +265,16 @@ proc newCXCursorWrapper*(data: CXCursor): CXCursorConcreteWrapper =
   new(result)
   result.data = data
   
-type 
-  Cursor* = ref object of CXCursorWrapper
-    data: ptr CXCursor
+#type 
+#  Cursor* = ref object of CXCursorWrapper
+#    data: ptr CXCursor
 
-method unWrap*(a: Cursor): ptr CXCursor = 
-  a.data
+#method unWrap*(a: Cursor): ptr CXCursor = 
+#  a.data
 
-proc newCXCursorWrapper*(data: ptr CXCursor): Cursor = 
-  new(result)
-  result.data = data
+#proc newCXCursorWrapper*(data: ptr CXCursor): Cursor = 
+#  new(result)
+#  result.data = data
   
 type 
   CursorArray* = ref object of CXCursorWrapper
@@ -597,12 +601,12 @@ proc createTranslationUnitFromSourceFile*(CIdx: CXIndexWrapper;
     source_filename: cstring; num_clang_command_line_args: cint; 
     command_line_args: cstringArray; num_unsaved_files: cuint; 
     unsaved_files: var CXUnsavedFile): CXTranslationUnitWrapper = 
-  return newCXTranslationUnitWrapper(libclang.createTranslationUnitFromSourceFile(
+  return newCXTranslationUnitWrapper(CIdx, libclang.createTranslationUnitFromSourceFile(
       CIdx.data, source_filename, num_clang_command_line_args, 
       command_line_args, num_unsaved_files, addr(unsaved_files)))
 
 proc createTranslationUnit*(CIdx: CXIndexWrapper; ast_filename: cstring): CXTranslationUnitWrapper = 
-  return newCXTranslationUnitWrapper(libclang.createTranslationUnit(CIdx.data, 
+  return newCXTranslationUnitWrapper(CIdx, libclang.createTranslationUnit(CIdx.data, 
       ast_filename))
 
 proc createTranslationUnit2*(CIdx: CXIndexWrapper; ast_filename: cstring; 
@@ -615,7 +619,7 @@ proc parseTranslationUnit*(CIdx: CXIndexWrapper; source_filename: cstring;
                            num_command_line_args: cint; 
                            unsaved_files: var CXUnsavedFile; 
                            num_unsaved_files: cuint; options: cuint): CXTranslationUnitWrapper = 
-  return newCXTranslationUnitWrapper(libclang.parseTranslationUnit(CIdx.data, 
+  return newCXTranslationUnitWrapper(CIdx,libclang.parseTranslationUnit(CIdx.data, 
       source_filename, command_line_args, num_command_line_args, 
       addr(unsaved_files), num_unsaved_files, options))
 
@@ -697,9 +701,11 @@ proc getCursorLanguage*(cursor: CXCursorWrapper): CXLanguageKind =
   let cU = cursor.unWrap() 
   return libclang.getCursorLanguage(cU[])
 
-proc getTranslationUnit*(a2: CXCursorWrapper): CXTranslationUnitWrapper =
+#FIXME: added index param as needed for newCXTranslationUnitWrapper,
+#       need to find better work around
+proc getTranslationUnit*(index: CXIndexWrapper, a2: CXCursorWrapper): CXTranslationUnitWrapper =
   let cU = a2.unWrap() 
-  return newCXTranslationUnitWrapper(libclang.getTranslationUnit(cu[]))
+  return newCXTranslationUnitWrapper(index, libclang.getTranslationUnit(cu[]))
 
 proc createCXCursorSet*(): CXCursorSetWrapper = 
   return newCXCursorSetWrapper(libclang.createCXCursorSet())
