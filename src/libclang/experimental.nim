@@ -7,13 +7,14 @@ import unsigned
 
 # TODOs
 # - replace cstring in wrapped procedures
-# - helper procedures for array access
+# - helper procedures for array access (template?)
 # - check order order dependent stuff, eg clang_disposeTokens(tu,...)
 #   must be called before clang_disposeTranslationUnit(tu)
 # - getTranslationUnit returns a reference we may already have (there may be others) - double free (commented out for now)
 # - some procedures should return a result instead of using an OUT param
 # - make wrapper names consistent. Should wrappers holding arrays have Array in the name? i.e CXWPlatformAvailability, CXWCursor
-
+# - get rid of var params when value not modified
+# - convert openarray to seq so we can have default value?
 
 type 
   CXWString* = ref object 

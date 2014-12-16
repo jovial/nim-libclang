@@ -82,5 +82,6 @@ proc main: int =
   showAllTokens(tu,tokens)
   
 when isMainModule:
-  quit main()
+  let ret = main()
   GC_fullcollect() # try and induce a seg fault to test finalisers are running in correct order
+  quit ret
