@@ -2,7 +2,7 @@ import os
 import libclang
 import unsigned
 import strutils
-import utils
+import "../utils"
 
 proc showClangVersion() =
   var version = getClangVersion()

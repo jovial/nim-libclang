@@ -1,7 +1,6 @@
+from times import Time
 {.deadCodeElim: on.}
 {.push callconv: cdecl.}
-type 
-  time_t* {.importc: "time_t", header: "<sys/time.h>".} = int
 when defined(windows): 
   const 
     libclang* = "libclang.dll"
@@ -112,7 +111,7 @@ type
   CXFile* = distinct pointer
 proc getFileName*(SFile: CXFile): CXString {.cdecl, 
     importc: "clang_getFileName", dynlib: libclang.}
-proc getFileTime*(SFile: CXFile): time_t {.cdecl, importc: "clang_getFileTime", 
+proc getFileTime*(SFile: CXFile): Time {.cdecl, importc: "clang_getFileTime", 
     dynlib: libclang.}
 type 
   CXFileUniqueID* {.pure, bycopy.} = object 

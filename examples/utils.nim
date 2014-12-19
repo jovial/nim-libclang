@@ -42,7 +42,7 @@ template withFile*(f, fn, mode: expr, actions: stmt): stmt {.immediate.} =
   else:
     quit("cannot open: " & fn)
     
-proc writeClangVersion*(stream: PStream) =
+proc writeClangVersion*(stream: Stream) =
   var version = getClangVersion()
   var verString = getCString(version);
   stream.writeLn($verString)
