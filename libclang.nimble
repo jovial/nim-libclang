@@ -1,5 +1,5 @@
 [Package]
-name          = "nim-libclang"
+name          = "libclang"
 version       = "0.1.0"
 author        = "Will Szumski"
 description   = "Bindings for libclang"
